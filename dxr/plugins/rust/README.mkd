@@ -1,0 +1,38 @@
+Rust plugin
+-----------
+
+Work in progess, not ready for use.
+
+This plugin is disabled by default. You need to set disabled plugins to something
+other than 'rust' to use it. (TODO that is probably wrong, we need to hardcode it,
+so that disable='' -> disabling rust and it needs to be explicitly enabled)
+
+Unlike Clang there is no mechanism for plugins for Rust. So the strategy is to write
+a program which uses the fontend parts of librustc to do a normal compile pass,
+but to output csv for later analysis, rather than llvm ir.
+
+TODO
+----
+
+EVERYTHING!
+
+jump to stdlib index somewhere for stdlib etc. refs.
+handle calls into C via the FFI using the clang plugin (and vice versa, I guess)
+effects of functions (pure - do we have this info from the compiler?)
+  other static analysis type info from the compiler
+
+trait defs
+trait refs
+impl defs
+type decls
+var defs (let)
+var refs
+fn defs
+fn use
+struct defs
+struct refs
+type param defs
+type param refs
+module/crate thing
+use decls etc.
+...
