@@ -52,15 +52,13 @@ def post_process(tree, conn):
 
     print " - Processing files"
     temp_folder = os.path.join(tree.temp_folder, 'plugins', PLUGIN_NAME)
-    #TODO one csv file per crate now
     for root, dirs, files in os.walk(temp_folder):
-        if not root.startswith(temp_folder):
-            print "Unexpected - not a subdirectory"
-            return
-        crate_name = root[len(temp_folder)+1:]
-
         for f in [f for f in files if f.endswith('.csv')]:
+            crate_name = root[:f.index('.csv')]
             process_csv(os.path.join(root, f), crate_name, conn)
+
+        # don't need to look in sub-directories
+        break
 
     print " - Committing changes"
     # TODO do this every 10,000 lines
@@ -90,24 +88,10 @@ def process_csv(file_name, crate_name, conn):
     # TODO wrap all this in a try block
     f = open(file_name, 'r')
     parsed_iter = csv.reader(f)
-
-    if file_name.endswith('fn_calls.csv'):
-        for line in parsed_iter:
-            process_fn_call(line, conn)
-    elif file_name.endswith('fn_defs.csv'):
-        for line in parsed_iter:
-            process_function(line, conn)
-    elif file_name.endswith('var_defs.csv'):
-        for line in parsed_iter:
-            process_variable(line, conn)
-            pass
-    elif file_name.endswith('var_refs.csv'):
-        for line in parsed_iter:
-            process_var_ref(line, conn)
-            pass
-    else:
-        #TODO remove this
-        print "unexpected file " + file_name
+    # the first item on a line is the kind of entity we are dealing with and so
+    # we can use that to dispatch to the appropriate process_... function
+    for line in parsed_iter:
+        globals()['process_' + line[0]](line, conn)
 
     f.close()
 

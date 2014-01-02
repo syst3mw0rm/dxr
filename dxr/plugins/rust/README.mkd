@@ -16,7 +16,6 @@ Strategy 2 - hack the compiler to output dxr csvs and make it more generic later
 TODO
 ----
 
-* change to a single csv file
 * change to key/value pairs in the csv
 * need to make dumping dependent on a build flag and add that in dxr somehow
 
