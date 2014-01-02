@@ -1,5 +1,19 @@
 // A simple rust project
 
+mod sub {
+    pub mod sub2 {
+        pub fn hello() {
+            println("hello from a module");
+        }
+    }
+}
+
+fn hello() {
+  let x: u32 = 5;
+  println(x.to_str());
+}
+
 fn main() {
-  println("hello world!");
+  hello();
+  sub::sub2::hello();
 }

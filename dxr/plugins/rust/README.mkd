@@ -11,28 +11,49 @@ Unlike Clang there is no mechanism for plugins for Rust. So the strategy is to w
 a program which uses the fontend parts of librustc to do a normal compile pass,
 but to output csv for later analysis, rather than llvm ir.
 
+Strategy 2 - hack the compiler to output dxr csvs and make it more generic later...
+
 TODO
 ----
 
-EVERYTHING!
+* change to a single csv file
+* change to key/value pairs in the csv
+* need to make dumping dependent on a build flag and add that in dxr somehow
 
-jump to stdlib index somewhere for stdlib etc. refs.
+sort out the lhs bar
+
+rename dxr -> dump ...
+
+jump to stdlib index somewhere for stdlib etc. refs. (maybe this will come out in the wash; doubt it)
+  jump to docs or source, maybe
 handle calls into C via the FFI using the clang plugin (and vice versa, I guess)
-effects of functions (pure - do we have this info from the compiler?)
+effects of functions (purity etc.)
   other static analysis type info from the compiler
 
-trait defs
-trait refs
-impl defs
-type decls
-var defs (let)
-var refs
-fn defs
-fn use
-struct defs
-struct refs
-type param defs
-type param refs
-module/crate thing
-use decls etc.
+how to handle macros - are we checking the ast before or after expansion?
+  - I think after, and this is kinda busted
+
+can we refactor to share python code with the clang plugin?
+
+Need to add a layer of indirection for ast ids -> db ids (in the dxr plugin) so we
+don't clash with rows from the clang plugin
+
+items
+-----
+
+* var defs (args, globals) + refs
+struct defs + refs (types, paths)
+method defs + refs
+  virtual methods
+field defs + refs
+module defs + refs (use, paths)
+trait defs + refs (types, paths)
+impls
+type decls (typedef thing)
+fn defs + calls (add callers/callees, other stuff)
+  + fn refs = calls + stored into a var + other?
+type param defs + refs
+lifetime param defs + refs
 ...
+
+compiler warnings
