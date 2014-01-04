@@ -74,6 +74,29 @@ class RustHtmlifier(object):
             self.add_jump_definition(menu, path, line)
             yield start, end, (menu, qualname, value)
 
+        # Add struct and trait defs
+        sql = """
+            SELECT extent_start, extent_end, qualname, kind
+                FROM types
+              WHERE file_id = ?
+        """
+        for start, end, qualname, kind in self.conn.execute(sql, args):
+            yield start, end, (self.type_menu(qualname, kind), qualname, None)
+
+        # Add references to types
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                          types.qualname,
+                          types.kind,
+                          (SELECT path FROM files WHERE files.id = types.file_id),
+                          types.file_line
+                FROM types, type_refs AS refs
+              WHERE types.id = refs.refid AND refs.file_id = ?
+        """
+        for start, end, qualname, kind, path, line in self.conn.execute(sql, args):
+            menu = self.type_menu(qualname, kind)
+            self.add_jump_definition(menu, path, line)
+            yield start, end, (menu, qualname, None)
 
     def search(self, query):
         """ Auxiliary function for getting the search url for query """
@@ -106,6 +129,38 @@ class RustHtmlifier(object):
             'title':  "Find reference to this variable",
             'href':   self.search("+var-ref:%s" % self.quote(qualname)),
             'icon':   'field'
+        })
+        return menu
+
+    def type_menu(self, qualname, kind):
+        """ Build menu for type """
+        menu = []
+        # TODO - inheritance
+        if kind == 'trait':
+            menu.append({
+                'text':   "Find sub-traits",
+                'title':  "Find sub-traits of this trait",
+                'href':   self.search("+derived:%s" % self.quote(qualname)),
+                'icon':   'type'
+            })
+            menu.append({
+                'text':   "Find super-traits",
+                'title':  "Find super-traits of this trait",
+                'href':   self.search("+bases:%s" % self.quote(qualname)),
+                'icon':   'type'
+            })
+        # TODO
+        menu.append({
+            'text':   "Find members",
+            'title':  "Find members of this class",
+            'href':   self.search("+member:%s" % self.quote(qualname)),
+            'icon':   'members'
+        })
+        menu.append({
+            'text':   "Find references",
+            'title':  "Find references to this class",
+            'href':   self.search("+type-ref:%s" % self.quote(qualname)),
+            'icon':   'reference'
         })
         return menu
 

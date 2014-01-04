@@ -16,8 +16,7 @@ Strategy 2 - hack the compiler to output dxr csvs and make it more generic later
 TODO
 ----
 
-* change to key/value pairs in the csv
-* need to make dumping dependent on a build flag and add that in dxr somehow
+* TODOs
 
 sort out the lhs bar
 
@@ -30,22 +29,23 @@ effects of functions (purity etc.)
   other static analysis type info from the compiler
 
 how to handle macros - are we checking the ast before or after expansion?
-  - I think after, and this is kinda busted
+  - I think after, and this is kinda busted sometimes
 
 can we refactor to share python code with the clang plugin?
 
-Need to add a layer of indirection for ast ids -> db ids (in the dxr plugin) so we
-don't clash with rows from the clang plugin
+Need to add a layer of indirection for ast ids -> db ids (in the dxr (and clang) plugin) so we
+don't clash with rows from the clang plugin (or make the language part of the id or something)
+
+compiler warnings
 
 items
 -----
 
-* var defs (args, globals) + refs
-struct defs + refs (types, paths)
+module defs + refs (use, paths)
 method defs + refs
   virtual methods
+  static methods
 field defs + refs
-module defs + refs (use, paths)
 trait defs + refs (types, paths)
 impls
 type decls (typedef thing)
@@ -55,4 +55,3 @@ type param defs + refs
 lifetime param defs + refs
 ...
 
-compiler warnings
