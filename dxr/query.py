@@ -17,6 +17,8 @@ _parameters = ["path", "ext",
 "var", "var-ref", "var-decl",
 "namespace", "namespace-ref",
 "namespace-alias", "namespace-alias-ref",
+"module", "module-ref", "module-use",
+"module-alias", "module-alias-ref",
 "macro", "macro-ref", "callers", "called-by",
 "overridden", "overrides", "warning",
 "warning-opt", "bases", "derived", "member"]
@@ -923,6 +925,93 @@ filters = [
                         """,
         like_name     = "namespace_aliases.name",
         qual_name     = "namespace_aliases.qualname"
+    ),
+
+    # module filter
+    ExistsLikeFilter(
+        param         = "module",
+        filter_sql    = """SELECT 1 FROM modules
+                           WHERE %s
+                             AND modules.file_id = files.id
+                        """,
+        ext_sql       = """SELECT modules.extent_start, modules.extent_end FROM modules
+                           WHERE modules.file_id = ?
+                             AND %s
+                           ORDER BY modules.extent_start
+                        """,
+        like_name     = "modules.name",
+        qual_name     = "modules.qualname"
+    ),
+
+    # module-ref filter
+    ExistsLikeFilter(
+        param         = "module-ref",
+        filter_sql    = """SELECT 1 FROM modules, module_refs AS refs
+                           WHERE %s
+                             AND modules.id = refs.refid AND refs.file_id = files.id
+                        """,
+        ext_sql       = """SELECT refs.extent_start, refs.extent_end FROM module_refs AS refs
+                           WHERE refs.file_id = ?
+                             AND EXISTS (SELECT 1 FROM modules
+                                         WHERE %s
+                                           AND modules.id = refs.refid)
+                           ORDER BY refs.extent_start
+                        """,
+        like_name     = "modules.name",
+        qual_name     = "modules.qualname"
+    ),
+
+    # module-alias filter
+    ExistsLikeFilter(
+        param         = "module-alias",
+        filter_sql    = """SELECT 1 FROM module_aliases
+                           WHERE %s
+                             AND module_aliases.file_id = files.id
+                        """,
+        ext_sql       = """SELECT module_aliases.extent_start, module_aliases.extent_end FROM module_aliases
+                           WHERE module_aliases.file_id = ?
+                             AND %s
+                           ORDER BY module_aliases.extent_start
+                        """,
+        like_name     = "module_aliases.name",
+        qual_name     = "module_aliases.qualname"
+    ),
+
+    # module-use filter
+    ExistsLikeFilter(
+        param         = "module-use",
+        filter_sql    = """SELECT 1 FROM modules, module_aliases
+                           WHERE %s
+                             AND modules.id = module_aliases.refid
+                             AND module_aliases.file_id = files.id
+                        """,
+        ext_sql       = """SELECT module_aliases.extent_start, module_aliases.extent_end FROM module_aliases
+                           WHERE module_aliases.file_id = ?
+                             AND EXISTS (SELECT 1 FROM modules
+                                         WHERE %s
+                                           AND modules.id = module_aliases.refid)
+                           ORDER BY module_aliases.extent_start
+                        """,
+        like_name     = "modules.name",
+        qual_name     = "modules.qualname"
+    ),
+
+    # module-alias-ref filter
+    ExistsLikeFilter(
+        param         = "module-alias-ref",
+        filter_sql    = """SELECT 1 FROM module_aliases, module_refs AS refs
+                           WHERE %s
+                             AND module_aliases.id = refs.aliasid AND refs.file_id = files.id
+                        """,
+        ext_sql       = """SELECT refs.extent_start, refs.extent_end FROM module_refs AS refs
+                           WHERE refs.file_id = ?
+                             AND EXISTS (SELECT 1 FROM module_aliases
+                                         WHERE %s
+                                           AND module_aliases.id = refs.aliasid)
+                           ORDER BY refs.extent_start
+                        """,
+        like_name     = "module_aliases.name",
+        qual_name     = "module_aliases.qualname"
     ),
 
     # macro filter

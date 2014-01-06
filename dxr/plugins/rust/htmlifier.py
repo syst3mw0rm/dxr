@@ -98,6 +98,78 @@ class RustHtmlifier(object):
             self.add_jump_definition(menu, path, line)
             yield start, end, (menu, qualname, None)
 
+        # modules
+        sql = """
+            SELECT extent_start, extent_end, qualname
+                FROM modules
+              WHERE file_id = ?
+        """
+        for start, end, qualname in self.conn.execute(sql, args):
+            menu = self.module_menu(qualname)
+            if False: #TODO for module decls
+                self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
+            yield start, end, (menu, qualname, None)
+
+        # Add references to modules
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                          modules.qualname,
+                          (SELECT path FROM files WHERE files.id = modules.file_id),
+                          modules.file_line
+                FROM modules, module_refs AS refs
+              WHERE modules.id = refs.refid AND
+                refs.file_id = ? AND
+                refs.aliasid = 0
+        """
+        for start, end, qualname, path, line in self.conn.execute(sql, args):
+            menu = self.module_menu(qualname)
+            if False: #TODO for module decls
+                self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
+            self.add_jump_definition(menu, path, line)
+            yield start, end, (menu, qualname, None)
+
+        # Add references to modules via aliases
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                          refs.qualname,
+                          (SELECT path FROM files WHERE files.id = module_aliases.file_id),
+                          module_aliases.file_line,
+                          (SELECT path FROM files WHERE files.id = modules.file_id),
+                          modules.file_line
+                FROM modules, module_refs AS refs, module_aliases
+              WHERE modules.id = refs.refid AND
+                refs.file_id = ? AND
+                refs.aliasid = module_aliases.id
+        """
+        for start, end, qualname, path, line, mod_path, mod_line in self.conn.execute(sql, args):
+            menu = self.module_menu(qualname)
+            if False: #TODO for module decls
+                self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
+            self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
+            self.add_jump_definition(menu, path, line)
+            yield start, end, (menu, qualname, None)
+
+        # Add module aliases. 'use' without an explicit alias and without any wildcards,
+        # etc. introduces an implicit alias for the module. E.g, |use a::b::c|
+        # introduces an alias |c|. In these cases, we make the alias transparent - 
+        # there is no link for the alias, but we add the alias menu stuff to the
+        # module ref.
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                module_aliases.qualname
+                FROM module_aliases, modules
+              WHERE module_aliases.file_id = ? AND
+                module_aliases.refid = modules.id AND
+                module_aliases.name != modules.name
+        """
+        for start, end, qualname in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
+            yield start, end, (menu, qualname, None)
+
+
+
     def search(self, query):
         """ Auxiliary function for getting the search url for query """
         return search_url(self.tree.config.wwwroot,
@@ -109,6 +181,8 @@ class RustHtmlifier(object):
         if ' ' in qualname:
             qualname = '"' + qualname + '"'
         return qualname
+
+    #TODO factor out 'find references'
 
     def function_menu(self, qualname):
         """ Build menu for a function """
@@ -164,13 +238,42 @@ class RustHtmlifier(object):
         })
         return menu
 
-    def add_jump_definition(self, menu, path, line):
+    def module_menu(self, qualname):
+        """ Build menu for a module """
+        menu = []
+        menu.append({
+            'text':   "Find references",
+            'title':  "Find references to this module",
+            'href':   self.search("+module-ref:%s" % self.quote(qualname)),
+            'icon':   'reference'
+        })
+        menu.append({
+            'text':   "Find uses",
+            'title':  "Find 'use's of this module",
+            'href':   self.search("+module-use:%s" % self.quote(qualname)),
+            'icon':   'reference'
+        })
+        # TODO - jump to implementation
+        return menu
+
+    def module_alias_menu(self, qualname):
+        """ Build menu for a module alias """
+        menu = []
+        menu.append({
+            'text':   "Find references",
+            'title':  "Find references to this module alias",
+            'href':   self.search("+module-alias-ref:%s" % self.quote(qualname)),
+            'icon':   'reference'
+        })
+        return menu
+
+    def add_jump_definition(self, menu, path, line, text="Jump to definition"):
         """ Add a jump to definition to the menu """
         # Definition url
         url = self.tree.config.wwwroot + '/' + self.tree.name + '/source/' + path
         url += "#%s" % line
         menu.insert(0, { 
-            'text':   "Jump to definition",
+            'text':   text,
             'title':  "Jump to the definition in '%s'" % os.path.basename(path),
             'href':   url,
             'icon':   'jump'
