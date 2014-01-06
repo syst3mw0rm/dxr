@@ -1,5 +1,8 @@
 // A simple rust project
 
+use msalias = sub::sub2;
+use sub::sub2;
+
 static yy: uint = 25u;
 
 mod sub {
@@ -34,8 +37,13 @@ fn main() {
     hello((43, ~"a"));
     sub::sub2::hello();
 
+    let h = sub::sub2::hello;
+    h();
+
     let s1 = nofields;
     let s2 = some_fields{ field1: 55};
     let s3: some_fields = some_fields{ field1: 55};
-    let s4: sub::sub2::nested_struct = sub::sub2::nested_struct{ field2: 55};
+    let s4: msalias::nested_struct = sub::sub2::nested_struct{ field2: 55};
+    let s4: msalias::nested_struct = sub2::nested_struct{ field2: 55};
+    println(s2.field1.to_str());
 }

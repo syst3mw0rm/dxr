@@ -16,7 +16,11 @@ Strategy 2 - hack the compiler to output dxr csvs and make it more generic later
 TODO
 ----
 
-* TODOs
+scopes so we can query items in a module, class etc.
+
+multiple files and paths in one crate
+
+multiple crates
 
 sort out the lhs bar
 
@@ -40,18 +44,20 @@ compiler warnings
 
 items
 -----
-
-module defs + refs (use, paths)
-method defs + refs
-  virtual methods
-  static methods
-field defs + refs
 trait defs + refs (types, paths)
 impls
 type decls (typedef thing)
+modules in other files
+method defs + refs
+  virtual methods
+  static methods
 fn defs + calls (add callers/callees, other stuff)
   + fn refs = calls + stored into a var + other?
 type param defs + refs
 lifetime param defs + refs
+extern mod
 ...
+
+other ways we can get a fn_decl - methods, closures, inline anon fns, procs, bare funs
+
 
