@@ -224,15 +224,21 @@ class RustHtmlifier(object):
                 'icon':   'type'
             })
         # TODO
+        member = 'error'
+        if kind == 'struct':
+            member = 'fields'
+        elif kind == 'trait':
+            member = 'methods'
+
         menu.append({
-            'text':   "Find members",
-            'title':  "Find members of this class",
+            'text':   "Find " + member,
+            'title':  "Find " + member + " of this " + kind,
             'href':   self.search("+member:%s" % self.quote(qualname)),
             'icon':   'members'
         })
         menu.append({
             'text':   "Find references",
-            'title':  "Find references to this class",
+            'title':  "Find references to this " + kind,
             'href':   self.search("+type-ref:%s" % self.quote(qualname)),
             'icon':   'reference'
         })
