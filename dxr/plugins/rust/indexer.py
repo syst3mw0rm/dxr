@@ -224,6 +224,14 @@ def process_struct(args, conn):
 
     execute_sql(conn, language_schema.get_insert_sql('types', args))
 
+def process_trait(args, conn):
+    args['name'] = args['qualname'].split('::')[-1]
+    args['file_id'] = get_file_id(args['file_name'], conn)
+    args['kind'] = 'trait'
+    args['language'] = 'rust'
+
+    execute_sql(conn, language_schema.get_insert_sql('types', args))
+
 def process_struct_ref(args, conn):
     process_type_ref(args, conn)
 

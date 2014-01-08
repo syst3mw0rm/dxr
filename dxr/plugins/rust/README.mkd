@@ -16,6 +16,8 @@ Strategy 2 - hack the compiler to output dxr csvs and make it more generic later
 TODO
 ----
 
+TODOs/refactoring
+
 scopes so we can query items in a module, class etc.
 
 multiple files and paths in one crate
@@ -44,13 +46,14 @@ compiler warnings
 
 items
 -----
-trait defs + refs (types, paths)
+  super-traits/sub-traits
 impls
 type decls (typedef thing)
 modules in other files
 method defs + refs
-  virtual methods
   static methods
+    trait refs in static method calls
+  virtual methods
 fn defs + calls (add callers/callees, other stuff)
   + fn refs = calls + stored into a var + other?
 type param defs + refs

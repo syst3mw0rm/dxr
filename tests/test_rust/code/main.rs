@@ -22,6 +22,24 @@ struct some_fields {
     field1: u32,
 }
 
+trait SuperTrait {
+
+}
+
+trait SomeTrait : SuperTrait {
+    fn Method(&self, x: u32) -> u32;
+}
+
+impl SomeTrait for some_fields {
+    fn Method(&self, x: u32) -> u32 {
+        self.field1
+    }  
+}
+
+impl SuperTrait for some_fields {
+  
+}
+
 fn hello((z, a) : (u32, ~str)) {
     println(yy.to_str());
     let (x, y): (u32, u32) = (5, 3);
@@ -31,6 +49,8 @@ fn hello((z, a) : (u32, ~str)) {
     println(x.to_str());
     let x = ~"hello";
     println(x);
+
+    let s: ~SomeTrait = ~some_fields {field1: 43};
 }
 
 fn main() {
