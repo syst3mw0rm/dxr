@@ -47,18 +47,23 @@ compiler warnings
 items
 -----
   super-traits/sub-traits
-impls
-type decls (typedef thing)
+* impls - record impl defs but don't htmlify them, find impls for a trait; find impls for a struct
+* type decls (typedef thing)
+
 modules in other files
+
 method defs + refs
   static methods
     trait refs in static method calls
   virtual methods
 fn defs + calls (add callers/callees, other stuff)
   + fn refs = calls + stored into a var + other?
+
+multiple crates
+  extern mod
+
 type param defs + refs
 lifetime param defs + refs
-extern mod
 ...
 
 other ways we can get a fn_decl - methods, closures, inline anon fns, procs, bare funs

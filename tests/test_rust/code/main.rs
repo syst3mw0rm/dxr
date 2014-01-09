@@ -30,6 +30,10 @@ trait SomeTrait : SuperTrait {
     fn Method(&self, x: u32) -> u32;
 }
 
+trait SubTrait: SomeTrait {
+  
+}
+
 impl SomeTrait for some_fields {
     fn Method(&self, x: u32) -> u32 {
         self.field1
