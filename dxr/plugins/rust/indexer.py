@@ -114,6 +114,9 @@ def post_process(tree, conn):
     fixup_struct_ids(conn)
     fixup_sub_mods(conn)
 
+    print " - Generating inheritance graph"
+    generate_inheritance(conn)
+
     print " - Committing changes"
     conn.commit()
 
@@ -126,6 +129,9 @@ ctor_ids = {}
 # map from the id of a module to the id of its parent (or 0), if there is no parent
 # TODO are we going to use this?
 mod_parents = {}
+
+# list of (base, derived) trait ids
+inheritance = []
 
 # TODO need to take into account the crate?
 def get_file_id(file_name, conn):
@@ -307,3 +313,29 @@ def fixup_struct_ids(conn):
     # to the latter into refs to the former.
     for ctor in ctor_ids.keys():
         conn.execute('UPDATE type_refs SET refid=? WHERE refid=?', (ctor_ids[ctor],ctor))
+
+def process_inheritance(args, conn):
+    inheritance.append((args['base'], args['derived']))
+
+# compute the transitive closure of the inheritance graph and save it to the db
+def generate_inheritance(conn):
+    for (base, deriv) in inheritance:
+        conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, 'direct')",
+                     (base, deriv))
+
+    # transitive inheritance
+    closure = set(inheritance)
+    while True:
+        next_set = set([(b,dd) for (b,d) in closure for (bb,dd) in closure if d == bb])
+        next_set |= closure
+
+        if next_set == closure:
+            break
+
+        closure = next_set
+
+    for (base, deriv) in closure:
+        if (base, deriv) not in inheritance:
+            conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, NULL)",
+                         (base, deriv))
+
