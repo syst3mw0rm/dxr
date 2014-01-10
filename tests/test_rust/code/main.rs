@@ -31,7 +31,7 @@ trait SomeTrait : SuperTrait {
 }
 
 trait SubTrait: SomeTrait {
-  
+
 }
 
 impl SomeTrait for some_fields {
@@ -41,6 +41,10 @@ impl SomeTrait for some_fields {
 }
 
 impl SuperTrait for some_fields {
+  
+}
+
+impl some_fields {
   
 }
 

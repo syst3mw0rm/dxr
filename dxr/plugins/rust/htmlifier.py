@@ -27,6 +27,11 @@ class RustHtmlifier(object):
         # We'll need this argument for all queries here
         args = (self.file_id,)
 
+        # Note there is no ref for impls since both the trait and struct parts
+        # are covered as refs already. If you add this, then you will get overlapping
+        # extents, which is bad. We have impl_defs in the db because we do want
+        # to jump _to_ them.
+
         # Extents for functions definitions
         sql = """
             SELECT extent_start, extent_end, qualname
@@ -240,6 +245,12 @@ class RustHtmlifier(object):
             'text':   "Find references",
             'title':  "Find references to this " + kind,
             'href':   self.search("+type-ref:%s" % self.quote(qualname)),
+            'icon':   'reference'
+        })
+        menu.append({
+            'text':   "Find impls",
+            'title':  "Find impls which involve this " + kind,
+            'href':   self.search("+impl:%s" % self.quote(qualname)),
             'icon':   'reference'
         })
         return menu

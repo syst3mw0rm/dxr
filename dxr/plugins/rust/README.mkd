@@ -46,8 +46,6 @@ compiler warnings
 
 items
 -----
-  super-traits/sub-traits
-* impls - record impl defs but don't htmlify them, find impls for a trait; find impls for a struct
 * type decls (typedef thing)
 
 modules in other files
@@ -56,6 +54,7 @@ method defs + refs
   static methods
     trait refs in static method calls
   virtual methods
+  args, self
 fn defs + calls (add callers/callees, other stuff)
   + fn refs = calls + stored into a var + other?
 

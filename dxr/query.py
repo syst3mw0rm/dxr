@@ -1038,6 +1038,26 @@ filters = [
         qual_name     = "module_aliases.qualname"
     ),
 
+    # impl filter
+    ExistsLikeFilter(
+        description   = 'Implementations',
+        param         = "impl",
+        filter_sql    = """SELECT 1 FROM impl_defs, types
+                           WHERE %s
+                             AND types.id = impl_defs.refid
+                             AND impl_defs.file_id = files.id
+                        """,
+        ext_sql       = """SELECT impl_defs.extent_start, impl_defs.extent_end FROM impl_defs
+                           WHERE impl_defs.file_id = ?
+                             AND EXISTS (SELECT 1 FROM types
+                                         WHERE %s
+                                           AND types.id = impl_defs.refid)
+                           ORDER BY impl_defs.extent_start
+                        """,
+        like_name     = "types.name",
+        qual_name     = "types.qualname"
+    ),
+
     # macro filter
     ExistsLikeFilter(
         description   = 'Macro definition',
