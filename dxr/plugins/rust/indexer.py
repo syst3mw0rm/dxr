@@ -91,6 +91,17 @@ schema = dxr.schema.Schema({
         ("_fkey", "refid", "types", "id"),
         ("_index", "refid"),
     ],
+    # impls
+    "impl_defs": [
+        ("id", "INTEGER", False),
+        ("refid", "INTEGER", False),
+        ("extent_start", "INTEGER", True),
+        ("extent_end", "INTEGER", True),
+        ("_location", True),
+        # id is not a primary key - an impl can have two representations - one
+        # for the trait and on for the struct.
+        ("_fkey", "refid", "types", "id"),
+    ],
 })
 
 
@@ -339,3 +350,7 @@ def generate_inheritance(conn):
             conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, NULL)",
                          (base, deriv))
 
+def process_impl(args, conn):
+    args['file_id'] = get_file_id(args['file_name'], conn)
+
+    execute_sql(conn, schema.get_insert_sql('impl_defs', args))
