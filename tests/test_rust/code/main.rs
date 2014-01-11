@@ -7,6 +7,11 @@ static yy: uint = 25u;
 
 mod sub {
     pub mod sub2 {
+        pub mod sub3 {
+          pub fn hello() {
+              println("hello from module 3");
+          }          
+        }
         pub fn hello() {
             println("hello from a module");
         }
@@ -15,7 +20,11 @@ mod sub {
             field2: u32,
         }
     }
+
 }
+
+pub mod SameDir;
+pub mod SubDir;
 
 struct nofields;
 struct some_fields {
@@ -41,12 +50,14 @@ impl SomeTrait for some_fields {
 }
 
 impl SuperTrait for some_fields {
-  
+
 }
 
 impl some_fields {
-  
+
 }
+
+type MyType = ~some_fields;
 
 fn hello((z, a) : (u32, ~str)) {
     println(yy.to_str());
@@ -64,8 +75,9 @@ fn hello((z, a) : (u32, ~str)) {
 fn main() {
     hello((43, ~"a"));
     sub::sub2::hello();
+    sub2::sub3::hello();
 
-    let h = sub::sub2::hello;
+    let h = sub2::sub3::hello;
     h();
 
     let s1 = nofields;
@@ -74,4 +86,8 @@ fn main() {
     let s4: msalias::nested_struct = sub::sub2::nested_struct{ field2: 55};
     let s4: msalias::nested_struct = sub2::nested_struct{ field2: 55};
     println(s2.field1.to_str());
+    let s5: MyType = ~some_fields{ field1: 55};
+
+    let s = SameDir::SameStruct{name:~"Bob"};
+    let s = SubDir::SubStruct{name:~"Bob"};
 }

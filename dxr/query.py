@@ -157,12 +157,14 @@ class Query(object):
             for conds, args, exts in f.filter(self):
                 has_extents = exts or has_extents
                 conditions += " AND " + conds
+                print "adding: " + str(args) + " from " + str(f)
                 arguments += args
 
         sql %= conditions
         arguments += [limit, offset]
 
         #TODO Actually do something with the has_extents, ie. don't fetch contents
+        print "executing sql: " + sql + " args: " + str(arguments)
 
         cursor = self.execute_sql(sql, arguments)
 

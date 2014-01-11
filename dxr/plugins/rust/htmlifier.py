@@ -79,7 +79,7 @@ class RustHtmlifier(object):
             self.add_jump_definition(menu, path, line)
             yield start, end, (menu, qualname, value)
 
-        # Add struct and trait defs
+        # Add struct and trait defs, and typedefs
         sql = """
             SELECT extent_start, extent_end, qualname, kind
                 FROM types
@@ -94,43 +94,50 @@ class RustHtmlifier(object):
                           types.qualname,
                           types.kind,
                           (SELECT path FROM files WHERE files.id = types.file_id),
-                          types.file_line
+                          types.file_line,
+                          types.value
                 FROM types, type_refs AS refs
               WHERE types.id = refs.refid AND refs.file_id = ?
         """
-        for start, end, qualname, kind, path, line in self.conn.execute(sql, args):
+        for start, end, qualname, kind, path, line, value in self.conn.execute(sql, args):
             menu = self.type_menu(qualname, kind)
             self.add_jump_definition(menu, path, line)
-            yield start, end, (menu, qualname, None)
+            yield start, end, (menu, qualname, value)
 
         # modules
         sql = """
-            SELECT extent_start, extent_end, qualname
-                FROM modules
-              WHERE file_id = ?
+            SELECT extent_start, extent_end, qualname,
+                (SELECT path FROM files WHERE files.id = modules.def_file),
+                modules.def_file, modules.file_id
+            FROM modules
+            WHERE file_id = ?
         """
-        for start, end, qualname in self.conn.execute(sql, args):
+        for start, end, qualname, mod_path, def_file_id, cur_file_id in self.conn.execute(sql, args):
             menu = self.module_menu(qualname)
-            if False: #TODO for module decls
-                self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
+            if def_file_id != cur_file_id:
+                self.add_jump_definition(menu, mod_path, 1, "Jump to module defintion")
             yield start, end, (menu, qualname, None)
 
         # Add references to modules
         sql = """
             SELECT refs.extent_start, refs.extent_end,
-                          modules.qualname,
-                          (SELECT path FROM files WHERE files.id = modules.file_id),
-                          modules.file_line
+                         modules.qualname,
+                        (SELECT path FROM files WHERE files.id = modules.file_id),
+                        modules.file_line,
+                        (SELECT path FROM files WHERE files.id = modules.def_file),
+                        modules.def_file, modules.file_id
                 FROM modules, module_refs AS refs
               WHERE modules.id = refs.refid AND
                 refs.file_id = ? AND
                 refs.aliasid = 0
         """
-        for start, end, qualname, path, line in self.conn.execute(sql, args):
+        for start, end, qualname, path, line, mod_path, def_file_id, cur_file_id in self.conn.execute(sql, args):
             menu = self.module_menu(qualname)
-            if False: #TODO for module decls
-                self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
-            self.add_jump_definition(menu, path, line)
+            if def_file_id == cur_file_id:
+                self.add_jump_definition(menu, path, line)
+            else:
+                self.add_jump_definition(menu, mod_path, 1, "Jump to module defintion")
+                self.add_jump_definition(menu, path, line, "Jump to module declaration")
             yield start, end, (menu, qualname, None)
 
         # Add references to modules via aliases
@@ -151,7 +158,7 @@ class RustHtmlifier(object):
             if False: #TODO for module decls
                 self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
-            self.add_jump_definition(menu, path, line)
+            self.add_jump_definition(menu, path, line, "jump to alias definition")
             yield start, end, (menu, qualname, None)
 
         # Add module aliases. 'use' without an explicit alias and without any wildcards,
@@ -162,13 +169,15 @@ class RustHtmlifier(object):
         sql = """
             SELECT module_aliases.extent_start,
                 module_aliases.extent_end,
-                module_aliases.qualname
+                module_aliases.qualname,
+                (SELECT path FROM files WHERE files.id = modules.file_id),
+                modules.file_line
                 FROM module_aliases, modules
               WHERE module_aliases.file_id = ? AND
                 module_aliases.refid = modules.id AND
                 module_aliases.name != modules.name
         """
-        for start, end, qualname in self.conn.execute(sql, args):
+        for start, end, qualname, mod_path, mod_line in self.conn.execute(sql, args):
             menu = self.module_alias_menu(qualname)
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
             yield start, end, (menu, qualname, None)
@@ -214,7 +223,6 @@ class RustHtmlifier(object):
     def type_menu(self, qualname, kind):
         """ Build menu for type """
         menu = []
-        # TODO - inheritance
         if kind == 'trait':
             menu.append({
                 'text':   "Find sub-traits",
@@ -228,29 +236,30 @@ class RustHtmlifier(object):
                 'href':   self.search("+bases:%s" % self.quote(qualname)),
                 'icon':   'type'
             })
-        # TODO
-        member = 'error'
+        
+        member = None
         if kind == 'struct':
             member = 'fields'
         elif kind == 'trait':
             member = 'methods'
 
-        menu.append({
-            'text':   "Find " + member,
-            'title':  "Find " + member + " of this " + kind,
-            'href':   self.search("+member:%s" % self.quote(qualname)),
-            'icon':   'members'
-        })
+        if member:
+            menu.append({
+                'text':   "Find " + member,
+                'title':  "Find " + member + " of this " + kind,
+                'href':   self.search("+member:%s" % self.quote(qualname)),
+                'icon':   'members'
+            })
+            menu.append({
+                'text':   "Find impls",
+                'title':  "Find impls which involve this " + kind,
+                'href':   self.search("+impl:%s" % self.quote(qualname)),
+                'icon':   'reference'
+            })
         menu.append({
             'text':   "Find references",
             'title':  "Find references to this " + kind,
             'href':   self.search("+type-ref:%s" % self.quote(qualname)),
-            'icon':   'reference'
-        })
-        menu.append({
-            'text':   "Find impls",
-            'title':  "Find impls which involve this " + kind,
-            'href':   self.search("+impl:%s" % self.quote(qualname)),
             'icon':   'reference'
         })
         return menu
@@ -270,7 +279,6 @@ class RustHtmlifier(object):
             'href':   self.search("+module-use:%s" % self.quote(qualname)),
             'icon':   'reference'
         })
-        # TODO - jump to implementation
         return menu
 
     def module_alias_menu(self, qualname):
@@ -321,7 +329,6 @@ def htmlify(path, text):
         sql = "SELECT files.id FROM files WHERE path = ? LIMIT 1"
         row = _conn.execute(sql, (path,)).fetchone()
         if row:
-            print "Rust htmlification - " + path
             return RustHtmlifier(_tree, _conn, path, text, row[0])
     return None
 
