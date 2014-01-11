@@ -3,20 +3,19 @@ Rust plugin
 
 Work in progess, not ready for use.
 
+Tracked by https://bugzilla.mozilla.org/show_bug.cgi?id=956768
+
 This plugin is disabled by default. You need to set disabled plugins to something
 other than 'rust' to use it. (TODO that is probably wrong, we need to hardcode it,
 so that disable='' -> disabling rust and it needs to be explicitly enabled)
 
-Unlike Clang there is no mechanism for plugins for Rust. So the strategy is to write
-a program which uses the fontend parts of librustc to do a normal compile pass,
-but to output csv for later analysis, rather than llvm ir.
-
-Strategy 2 - hack the compiler to output dxr csvs and make it more generic later...
+Unlike Clang there is no mechanism for plugins for Rust. So the strategy is to
+hack the compiler to output dxr csvs and make it more generic later...
 
 TODO
 ----
 
-TODOs/refactoring
+File a bunch of bugzilla bugs
 
 scopes so we can query items in a module, class etc.
 
@@ -37,18 +36,20 @@ effects of functions (purity etc.)
 how to handle macros - are we checking the ast before or after expansion?
   - I think after, and this is kinda busted sometimes
 
-can we refactor to share python code with the clang plugin?
+refactor to share python code with the clang plugin?
 
 Need to add a layer of indirection for ast ids -> db ids (in the dxr (and clang) plugin) so we
 don't clash with rows from the clang plugin (or make the language part of the id or something)
 
 compiler warnings
 
+bugs
+----
+
+text search - case sensitivity bug - check its OK after rebase
+
 items
 -----
-* type decls (typedef thing)
-
-modules in other files
 
 method defs + refs
   static methods
@@ -57,14 +58,15 @@ method defs + refs
   args, self
 fn defs + calls (add callers/callees, other stuff)
   + fn refs = calls + stored into a var + other?
+  other ways we can get a fn_decl - methods, closures, inline anon fns, procs, bare funs
 
 multiple crates
   extern mod
 
 type param defs + refs
 lifetime param defs + refs
+non-mut vars (locals, statics) should get a value tooltip
 ...
 
-other ways we can get a fn_decl - methods, closures, inline anon fns, procs, bare funs
 
 
