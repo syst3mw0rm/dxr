@@ -64,13 +64,14 @@ schema = dxr.schema.Schema({
     ],
     # References to functions
     "function_refs": [
-        ("refid", "INTEGER", True),      # ID of the function being referenced
+        ("refid", "INTEGER", True),      # ID of the function defintion, if it exists
+        ("declid", "INTEGER", True),     # ID of the funtion declaration, if it exists
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
         ("_location", True),
         ("_location", True, 'referenced'),
         ("_fkey", "refid", "functions", "id"),
-        ("_index", "refid"),
+        ("_fkey", "declid", "functions", "id"),
     ],
     # References to variables
     "variable_refs": [
@@ -87,6 +88,7 @@ schema = dxr.schema.Schema({
         ("refid", "INTEGER", True),      # ID of the type being referenced
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
+        ("qualname", "VARCHAR(256)", False), # Used when we don't have a refid from rustc
         ("_location", True),
         ("_location", True, 'referenced'),
         ("_fkey", "refid", "types", "id"),
@@ -100,7 +102,7 @@ schema = dxr.schema.Schema({
         ("extent_end", "INTEGER", True),
         ("_location", True),
         # id is not a primary key - an impl can have two representations - one
-        # for the trait and on for the struct.
+        # for the trait and one for the struct.
         ("_fkey", "refid", "types", "id"),
     ],
 })
@@ -212,11 +214,28 @@ def process_function(args, conn):
 
     execute_sql(conn, language_schema.get_insert_sql('functions', args))
 
+def process_method_decl(args, conn):
+    args['name'] = args['qualname'].split('::')[-1]
+    args['language'] = 'rust'
+    args['args'] = ''
+    args['type'] = ''
+    args['file_id'] = get_file_id(args['file_name'], conn)
+
+    # TODO either share code with process_function, or store the decl somewhere else
+    execute_sql(conn, language_schema.get_insert_sql('functions', args))
+
 def process_fn_call(args, conn):
     args['file_id'] = get_file_id(args['file_name'], conn)
 
     execute_sql(conn, schema.get_insert_sql('function_refs', args))
-    
+
+def process_method_call(args, conn):
+    args['file_id'] = get_file_id(args['file_name'], conn)
+    if args['refid'] == '0':
+        args['refid'] = None
+
+    execute_sql(conn, schema.get_insert_sql('function_refs', args))
+
 def process_variable(args, conn):
     args['language'] = 'rust'
     args['type'] = ''
@@ -240,6 +259,7 @@ def process_struct(args, conn):
     args['kind'] = 'struct'
     args['language'] = 'rust'
 
+    # TODO add to scopes too
     execute_sql(conn, language_schema.get_insert_sql('types', args))
 
 def process_trait(args, conn):
@@ -248,9 +268,12 @@ def process_trait(args, conn):
     args['kind'] = 'trait'
     args['language'] = 'rust'
 
+    # TODO add to scopes too
     execute_sql(conn, language_schema.get_insert_sql('types', args))
 
 def process_struct_ref(args, conn):
+    if 'qualname' not in args:
+        args['qualname'] = ''
     process_type_ref(args, conn)
 
 def process_module(args, conn):
@@ -261,6 +284,7 @@ def process_module(args, conn):
     args['file_id'] = get_file_id(args['file_name'], conn)
     args['def_file'] = get_file_id(args['def_file'], conn)
 
+    # TODO add to scopes too
     execute_sql(conn, schema.get_insert_sql('modules', args))
 
 def process_mod_ref(args, conn):
@@ -275,49 +299,69 @@ def process_module_alias(args, conn):
 
     execute_sql(conn, schema.get_insert_sql('module_aliases', args))
 
+def process_impl(args, conn):
+    args['file_id'] = get_file_id(args['file_name'], conn)
+
+    # TODO add to scopes too
+    execute_sql(conn, schema.get_insert_sql('impl_defs', args))
+
+def process_typedef(args, conn):
+    args['name'] = args['qualname'].split('::')[-1]
+    args['file_id'] = get_file_id(args['file_name'], conn)
+    args['kind'] = 'typedef'
+    args['language'] = 'rust'
+
+    execute_sql(conn, language_schema.get_insert_sql('types', args))
+
 # When we have a path like a::b::c, we want to have info for a and a::b.
 # Unfortunately Rust does not give us much info, so we have to
 # construct it ourselves from the module info we have.
 # We have the qualname for the module (e.g, a or a::b) but we do not have
 # the refid
 def fixup_sub_mods(conn):
+    fixup_sub_mods_impl(conn, 'modules', 'module_refs')
+    # paths leading up to a static method have a module path, then a type at the
+    # so we have to fixup the type in the same way as we do modules.
+    fixup_sub_mods_impl(conn, 'types', 'type_refs')
+
+def fixup_sub_mods_impl(conn, table_name, table_ref_name):
     # First create refids for module refs whose qualnames match the qualname of
     # the module (i.e., no aliases).
     conn.execute("""
-        UPDATE module_refs SET
-            refid=(SELECT id FROM modules WHERE modules.qualname = module_refs.qualname)
-        WHERE refid=0 AND aliasid=0 AND
-            (SELECT id FROM modules WHERE modules.qualname = module_refs.qualname) IS NOT NULL
-        """)
+        UPDATE %(ref)s SET
+            refid=(SELECT id FROM %(tab)s WHERE %(tab)s.qualname = %(ref)s.qualname)
+        WHERE refid=0 AND
+            (SELECT id FROM %(tab)s WHERE %(tab)s.qualname = %(ref)s.qualname) IS NOT NULL
+        """%{'tab':table_name,'ref':table_ref_name})
 
-    # Next account for where the path is an aliased modules e.g., alias::c,
-    # where c is already accounted for.
-    # We can't do all this in one statement because sqlite does not have joins.
-    cur = conn.execute("""
-        SELECT module_refs.extent_start, module_aliases.id, modules.id,
-           module_aliases.name, modules.name, modules.qualname,
-           (SELECT path FROM files WHERE files.id = module_refs.file_id)
-        FROM module_refs, module_aliases, modules
-        WHERE module_refs.refid = 0 AND
-           module_refs.aliasid = 0 AND
-           module_refs.file_id = module_aliases.file_id AND
-           module_aliases.name = module_refs.qualname AND
-           modules.id = module_aliases.refid
-        """)
+    if table_name == 'modules':
+        # Next account for where the path is an aliased modules e.g., alias::c,
+        # where c is already accounted for.
+        # We can't do all this in one statement because sqlite does not have joins.
+        cur = conn.execute("""
+            SELECT refs.extent_start, module_aliases.id, modules.id,
+               module_aliases.name, modules.name, modules.qualname,
+               (SELECT path FROM files WHERE files.id = refs.file_id)
+            FROM module_refs AS refs, module_aliases, modules
+            WHERE refs.refid = 0 AND
+               refs.file_id = module_aliases.file_id AND
+               module_aliases.name = refs.qualname AND
+               modules.id = module_aliases.refid
+            """)
 
-    for ex_start, aliasid, refid, name, mod_name, qualname, file_name in cur:
-        # Aliases only have file scope, but we don't need to qualify purely
-        # truncating aliases (the implicit kind).
-        if name != mod_name:
-            qualname = file_name + "$" + name
-        conn.execute("""
-            UPDATE module_refs SET
-               refid = ?,
-               aliasid = ?,
-               qualname = ?
-            WHERE extent_start=?
-            """,
-            (refid, aliasid, qualname, ex_start))
+        for ex_start, aliasid, refid, name, mod_name, qualname, file_name in cur:
+            # Aliases only have file scope, but we don't need to qualify purely
+            # truncating aliases (the implicit kind).
+            if name != mod_name:
+                qualname = file_name + "$" + name
+            conn.execute("""
+                UPDATE module_refs SET
+                   refid = ?,
+                   aliasid = ?,
+                   qualname = ?
+                WHERE extent_start=?
+                """,
+                (refid, aliasid, qualname, ex_start))
 
     # And finally, the most complex case where the path is of the form
     # alias::b::c (this subsumes the above case, but I separate them out because
@@ -327,17 +371,16 @@ def fixup_sub_mods(conn):
     # the first query the module is the one the alias refers to, in the second
     # it is the one which the whole path refers to.
     cur = conn.execute("""
-        SELECT module_refs.extent_start, module_aliases.id,
-            module_aliases.name, modules.name, modules.qualname, module_refs.qualname,
-            (SELECT path FROM files WHERE files.id = module_refs.file_id)
-        FROM module_refs, module_aliases, modules
-        WHERE module_refs.refid = 0 AND
-            module_refs.aliasid = 0 AND
-            module_refs.file_id = module_aliases.file_id AND
-            module_refs.qualname LIKE module_aliases.name || '%' AND
+        SELECT refs.extent_start,
+            module_aliases.name, modules.name, modules.qualname, refs.qualname,
+            (SELECT path FROM files WHERE files.id = refs.file_id)
+        FROM %s as refs, module_aliases, modules
+        WHERE refs.refid = 0 AND
+            refs.file_id = module_aliases.file_id AND
+            refs.qualname LIKE module_aliases.name || '%%' AND
             modules.id = module_aliases.refid
-        """)
-    for ex_start, aliasid, alias_name, mod_name, qualname, ref_name, file_name in cur:
+        """%table_ref_name)
+    for ex_start, alias_name, mod_name, qualname, ref_name, file_name in cur:
         no_alias = ref_name.replace(alias_name, qualname)
         cur = conn.execute("""
             SELECT id, qualname
@@ -349,18 +392,12 @@ def fixup_sub_mods(conn):
         if mod:
             (refid, qualname) = mod
             conn.execute("""
-                UPDATE module_refs SET
+                UPDATE %s SET
                    refid = ?,
-                   aliasid = ?,
                    qualname = ?
                 WHERE extent_start=?
-                """,
-                (refid, aliasid, qualname, ex_start))
-
-def process_type_ref(args, conn):
-    args['file_id'] = get_file_id(args['file_name'], conn)
-
-    execute_sql(conn, schema.get_insert_sql('type_refs', args))
+                """%table_ref_name,
+                (refid, qualname, ex_start))
 
 def fixup_struct_ids(conn):
     # Sadness. Structs have an id for their definition and an id for their ctor.
@@ -368,6 +405,13 @@ def fixup_struct_ids(conn):
     # to the latter into refs to the former.
     for ctor in ctor_ids.keys():
         conn.execute('UPDATE type_refs SET refid=? WHERE refid=?', (ctor_ids[ctor],ctor))
+
+def process_type_ref(args, conn):
+    args['file_id'] = get_file_id(args['file_name'], conn)
+    if 'qualname' not in args:
+        args['qualname'] = ''
+
+    execute_sql(conn, schema.get_insert_sql('type_refs', args))
 
 def process_inheritance(args, conn):
     inheritance.append((args['base'], args['derived']))
@@ -393,16 +437,3 @@ def generate_inheritance(conn):
         if (base, deriv) not in inheritance:
             conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, NULL)",
                          (base, deriv))
-
-def process_impl(args, conn):
-    args['file_id'] = get_file_id(args['file_name'], conn)
-
-    execute_sql(conn, schema.get_insert_sql('impl_defs', args))
-
-def process_typedef(args, conn):
-    args['name'] = args['qualname'].split('::')[-1]
-    args['file_id'] = get_file_id(args['file_name'], conn)
-    args['kind'] = 'typedef'
-    args['language'] = 'rust'
-
-    execute_sql(conn, language_schema.get_insert_sql('types', args))

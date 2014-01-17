@@ -34,24 +34,76 @@ class RustHtmlifier(object):
 
         # Extents for functions definitions
         sql = """
-            SELECT extent_start, extent_end, qualname
+            SELECT extent_start, extent_end, qualname, id, declid
                 FROM functions
               WHERE file_id = ?
         """
-        for start, end, qualname in self.conn.execute(sql, args):
-            yield start, end, (self.function_menu(qualname), qualname, None)
+        for start, end, qualname, def_id, declid, in self.conn.execute(sql, args):
+            if declid:
+                # XXX I'm sure someone with more SQL smarts than me could do this
+                # in one statement
+                sql = """
+                    SELECT (SELECT path FROM files WHERE files.id = file_id),
+                           file_line
+                        FROM functions
+                      WHERE id = ?
+                """
+                declpath, declline = self.conn.execute(sql, (declid, )).fetchone()
+                yield start, end, (self.function_menu(qualname, def_id, declpath, declline), qualname, None)
+            else:
+                yield start, end, (self.function_menu(qualname, def_id), qualname, None)
 
-        # Add references to functions
+        # Add references to function def only
+        # These are statically dispatched functions with no trait decl.
         sql = """
             SELECT refs.extent_start, refs.extent_end,
                           functions.qualname,
                           (SELECT path FROM files WHERE files.id = functions.file_id),
                           functions.file_line
                 FROM functions, function_refs AS refs
-              WHERE functions.id = refs.refid AND refs.file_id = ?
+              WHERE functions.id = refs.refid AND refs.file_id = ? AND
+              refs.declid IS NULL
         """
         for start, end, qualname, path, line in self.conn.execute(sql, args):
-            menu = self.function_menu(qualname)
+            menu = self.function_menu(qualname, 0)
+            self.add_jump_definition(menu, path, line)
+            yield start, end, (menu, qualname, None)
+
+        # Add references to function decl only
+        # dynamically dispatched functions
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                          functions.qualname,
+                          (SELECT path FROM files WHERE files.id = functions.file_id),
+                          functions.file_line,
+                          refs.declid
+                FROM functions, function_refs AS refs
+              WHERE functions.id = refs.declid AND refs.file_id = ? AND
+              refs.refid IS NULL
+        """
+        for start, end, qualname, path, line, decl_id in self.conn.execute(sql, args):
+            menu = self.function_menu(qualname, decl_id)
+            self.add_jump_definition(menu, path, line, "Jump to trait method")
+            yield start, end, (menu, qualname, None)
+
+        # Add references to function def and decl
+        # statically dispatched, but implementing a trait method
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                          fn_def.qualname,
+                          (SELECT path FROM files WHERE files.id = fn_def.file_id),
+                          fn_def.file_line,
+                          fn_decl.qualname,
+                          (SELECT path FROM files WHERE files.id = fn_decl.file_id),
+                          fn_decl.file_line
+                FROM functions as fn_def, functions as fn_decl, function_refs AS refs
+              WHERE fn_def.id = refs.refid AND refs.file_id = ? AND
+              fn_decl.id = refs.declid
+        """
+        for start, end, qualname, path, line, decl_qualname, decl_path, decl_line in self.conn.execute(sql, args):
+            menu = self.function_menu(qualname, 0)
+            if decl_line != line or decl_path != path:
+                self.add_jump_definition(menu, decl_path, decl_line, "Jump to trait method")
             self.add_jump_definition(menu, path, line)
             yield start, end, (menu, qualname, None)
 
@@ -198,9 +250,29 @@ class RustHtmlifier(object):
 
     #TODO factor out 'find references'
 
-    def function_menu(self, qualname):
+    def function_menu(self, qualname, def_id, declpath=None, declline=None, is_trait_method=False):
         """ Build menu for a function """
         menu = []
+        if declpath:
+            self.add_jump_definition(menu, declpath, declline, "Jump to trait method")
+        if not declpath:
+            # no point adding 'find implementations' if there are no implementations
+            # note, that this will include methods in structs, which have no trait
+            # method or other defintions
+            sql = """
+                SELECT COUNT(*)
+                FROM functions 
+                WHERE declid = ?
+            """
+            c_decls = self.conn.execute(sql, (def_id,)).fetchone()[0]
+            if c_decls > 0:
+                menu.append({
+                    'text':   "Find implementations (%d)"%c_decls,
+                    'title':  "Find implementations of this trait method",
+                    'href':   self.search("+fn-impls:%s" % self.quote(qualname)),
+                    'icon':   'method'
+                })
+
         menu.append({
             'text':   "Find references",
             'title':  "Find references to this function",
@@ -237,19 +309,7 @@ class RustHtmlifier(object):
                 'icon':   'type'
             })
         
-        member = None
-        if kind == 'struct':
-            member = 'fields'
-        elif kind == 'trait':
-            member = 'methods'
-
-        if member:
-            menu.append({
-                'text':   "Find " + member,
-                'title':  "Find " + member + " of this " + kind,
-                'href':   self.search("+member:%s" % self.quote(qualname)),
-                'icon':   'members'
-            })
+        if kind == 'struct' or kind == 'trait':
             menu.append({
                 'text':   "Find impls",
                 'title':  "Find impls which involve this " + kind,
@@ -299,7 +359,7 @@ class RustHtmlifier(object):
         url += "#%s" % line
         menu.insert(0, { 
             'text':   text,
-            'title':  "Jump to the definition in '%s'" % os.path.basename(path),
+            'title':  "%s in '%s'" % (text,os.path.basename(path)),
             'href':   url,
             'icon':   'jump'
         })

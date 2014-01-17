@@ -32,19 +32,29 @@ struct some_fields {
 }
 
 trait SuperTrait {
-
 }
 
 trait SomeTrait : SuperTrait {
     fn Method(&self, x: u32) -> u32;
+
+    fn prov(&self, x: u32) -> u32 {
+        println(x.to_str());
+        42
+    }  
+    fn stat2(x: &Self) -> u32 {
+        32
+    }  
 }
 
 trait SubTrait: SomeTrait {
-
+    fn provided_method(&self) -> u32 {
+        42
+    }
 }
 
 impl SomeTrait for some_fields {
     fn Method(&self, x: u32) -> u32 {
+        println(x.to_str());
         self.field1
     }  
 }
@@ -54,10 +64,34 @@ impl SuperTrait for some_fields {
 }
 
 impl some_fields {
+    fn stat(x: u32) -> u32 {
+        println(x.to_str());
+        42
+    }  
+    fn stat2(x: &some_fields) -> u32 {
+        42
+    }  
+}
 
+impl SuperTrait for nofields {
+}
+impl SomeTrait for nofields {
+    fn Method(&self, x: u32) -> u32 {
+        43
+    }    
+}
+impl SubTrait for nofields {
+    fn provided_method(&self) -> u32 {
+        21
+    }
 }
 
 type MyType = ~some_fields;
+
+fn f_with_params<T: SomeTrait>(x: &T) {
+    x.Method(41);
+}
+
 
 fn hello((z, a) : (u32, ~str)) {
     println(yy.to_str());
@@ -70,6 +104,24 @@ fn hello((z, a) : (u32, ~str)) {
     println(x);
 
     let s: ~SomeTrait = ~some_fields {field1: 43};
+    let s2: ~some_fields = ~some_fields {field1: 43};
+    let s3 = ~nofields;
+
+    s.Method(43);
+    s3.Method(43);
+    s2.Method(43);
+
+    let y: u32 = 56;
+    // static method on struct
+    let r = some_fields::stat(y);
+    // trait static method, calls override
+    // TODO what is the syntax for this?
+    let r = SomeTrait::stat2(s2);
+    // trait static method, calls default
+    let r = SomeTrait::stat2(s3);
+
+    let s4 = s3 as ~SubTrait;
+    s4.Method(43);
 }
 
 fn main() {

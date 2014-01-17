@@ -15,50 +15,37 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-File a bunch of bugzilla bugs
-
 scopes so we can query items in a module, class etc.
-
-multiple files and paths in one crate
 
 multiple crates
 
-sort out the lhs bar
+sort out the rhs bar
 
 rename dxr -> dump ...
 
 jump to stdlib index somewhere for stdlib etc. refs. (maybe this will come out in the wash; doubt it)
   jump to docs or source, maybe
-handle calls into C via the FFI using the clang plugin (and vice versa, I guess)
+
 effects of functions (purity etc.)
   other static analysis type info from the compiler
 
-how to handle macros - are we checking the ast before or after expansion?
-  - I think after, and this is kinda busted sometimes
-
-refactor to share python code with the clang plugin?
-
-Need to add a layer of indirection for ast ids -> db ids (in the dxr (and clang) plugin) so we
-don't clash with rows from the clang plugin (or make the language part of the id or something)
-
-compiler warnings
 
 bugs
 ----
 
-text search - case sensitivity bug - check its OK after rebase
+text search - case sensitivity bug - the 'i' in the search query screws things up
+  update libtrilite
+
+commit dxr.config an other test files
+default directory should not use ~
 
 items
 -----
 
-method defs + refs
-  static methods
-    trait refs in static method calls
-  virtual methods
-  args, self
-fn defs + calls (add callers/callees, other stuff)
-  + fn refs = calls + stored into a var + other?
-  other ways we can get a fn_decl - methods, closures, inline anon fns, procs, bare funs
+methods - static method with specialisation
+
+call graph stuff
+  record enclosing fn of fn calls
 
 multiple crates
   extern mod
@@ -68,5 +55,10 @@ lifetime param defs + refs
 non-mut vars (locals, statics) should get a value tooltip
 ...
 
+pelmers
+-------
+
+enums (jump to def, find uses of each, find all uses)
+match (adds var decls)
 
 

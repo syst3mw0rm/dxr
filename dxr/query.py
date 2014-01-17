@@ -19,7 +19,7 @@ _parameters = ["path", "ext",
 "namespace-alias", "namespace-alias-ref",
 "module", "module-ref", "module-use",
 "module-alias", "module-alias-ref",
-"impl",
+"impl", "fn-impls",
 "macro", "macro-ref", "callers", "called-by",
 "overridden", "overrides", "warning",
 "warning-opt", "bases", "derived", "member"]
@@ -157,15 +157,12 @@ class Query(object):
             for conds, args, exts in f.filter(self):
                 has_extents = exts or has_extents
                 conditions += " AND " + conds
-                print "adding: " + str(args) + " from " + str(f)
                 arguments += args
 
         sql %= conditions
         arguments += [limit, offset]
 
         #TODO Actually do something with the has_extents, ie. don't fetch contents
-        print "executing sql: " + sql + " args: " + str(arguments)
-
         cursor = self.execute_sql(sql, arguments)
 
         # For each returned file (including, only in the case of the trilite
@@ -1034,6 +1031,26 @@ filters = [
                         """,
         like_name     = "types.name",
         qual_name     = "types.qualname"
+    ),
+
+    # find implementations of a trait method
+    ExistsLikeFilter(
+        param         = "fn-impls",
+        filter_sql    = """SELECT 1 FROM functions AS def, functions AS decl
+                           WHERE %s
+                             AND decl.id = def.declid
+                             AND def.file_id = files.id
+                        """,
+        ext_sql       = """SELECT def.extent_start, def.extent_end
+                           FROM functions AS def, functions AS decl
+                           WHERE def.file_id = ?
+                             AND EXISTS (SELECT 1 FROM types
+                                         WHERE %s
+                                           AND decl.id = def.declid)
+                           ORDER BY def.extent_start
+                        """,
+        like_name     = "decl.name",
+        qual_name     = "decl.qualname"
     ),
 
     # macro filter
