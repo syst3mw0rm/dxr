@@ -66,6 +66,7 @@ schema = dxr.schema.Schema({
     "function_refs": [
         ("refid", "INTEGER", True),      # ID of the function defintion, if it exists
         ("declid", "INTEGER", True),     # ID of the funtion declaration, if it exists
+        ("scopeid", "INTEGER", True),    # ID of the scope in which the call occurs
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
         ("_location", True),
@@ -105,6 +106,15 @@ schema = dxr.schema.Schema({
         # for the trait and one for the struct.
         ("_fkey", "refid", "types", "id"),
     ],
+    # We use a simpler version of the callgraph than the Clang plugin - there is
+    # no targets table, and callers maps a caller to all possible callees.
+    "callers": [
+        ("callerid", "INTEGER", False), # The function in which the call occurs
+        ("targetid", "INTEGER", False), # The target of the call
+        ("_key", "callerid", "targetid"),
+        ("_fkey", "callerid", "functions", "id")
+    ],
+
 })
 
 
@@ -130,6 +140,7 @@ def post_process(tree, conn):
 
     print " - Generating inheritance graph"
     generate_inheritance(conn)
+    generate_callgraph(conn)
 
     print " - Committing changes"
     conn.commit()
@@ -437,3 +448,28 @@ def generate_inheritance(conn):
         if (base, deriv) not in inheritance:
             conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, NULL)",
                          (base, deriv))
+
+def generate_callgraph(conn):
+    # staticaly  dispatched call
+    sql = """
+        SELECT refs.refid, refs.scopeid
+        FROM function_refs as refs, functions
+        WHERE
+            functions.id = refs.scopeid
+    """
+    for callee, caller in conn.execute(sql):
+        conn.execute("INSERT OR IGNORE INTO callers(callerid, targetid) VALUES (?, ?)",
+                     (caller, callee))
+
+    # dynamically dispatched call
+    sql = """
+        SELECT callee.id, refs.scopeid
+        FROM function_refs as refs, functions as callee, functions as caller
+        WHERE
+            caller.id = refs.scopeid
+            AND refs.refid IS NULL
+            AND refs.declid = callee.declid
+    """
+    for callee, caller in conn.execute(sql):
+        conn.execute("INSERT OR IGNORE INTO callers(callerid, targetid) VALUES (?, ?)",
+                     (caller, callee))

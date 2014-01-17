@@ -36,23 +36,20 @@ bugs
 text search - case sensitivity bug - the 'i' in the search query screws things up
   update libtrilite
 
-commit dxr.config an other test files
 default directory should not use ~
 
 items
 -----
 
-methods - static method with specialisation
+methods - check static method with specialisation
 
-call graph stuff
-  record enclosing fn of fn calls
+non-mut vars (locals, statics) should get a value tooltip
 
 multiple crates
   extern mod
 
 type param defs + refs
 lifetime param defs + refs
-non-mut vars (locals, statics) should get a value tooltip
 ...
 
 pelmers

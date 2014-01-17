@@ -274,6 +274,18 @@ class RustHtmlifier(object):
                 })
 
         menu.append({
+            'text':   "Find callers",
+            'title':  "Find functions that call this function",
+            'href':   self.search("+callers:%s" % self.quote(qualname)),
+            'icon':   'method'
+        })
+        menu.append({
+            'text':   "Find callees",
+            'title':  "Find functions that are called by this function",
+            'href':   self.search("+called-by:%s" % self.quote(qualname)),
+            'icon':   'method'
+        })
+        menu.append({
             'text':   "Find references",
             'title':  "Find references to this function",
             'href':   self.search("+function-ref:%s" % self.quote(qualname)),
