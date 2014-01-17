@@ -64,7 +64,9 @@ schema = dxr.schema.Schema({
     ],
     # References to functions
     "function_refs": [
-        ("refid", "INTEGER", True),      # ID of the function being referenced
+        ("refid", "INTEGER", True),      # ID of the function defintion, if it exists
+        ("declid", "INTEGER", True),     # ID of the funtion declaration, if it exists
+        ("scopeid", "INTEGER", True),    # ID of the scope in which the call occurs
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
         ("_location", True),
@@ -103,6 +105,15 @@ schema = dxr.schema.Schema({
         # for the trait and on for the struct.
         ("_fkey", "refid", "types", "id"),
     ],
+    # We use a simpler version of the callgraph than the Clang plugin - there is
+    # no targets table, and callers maps a caller to all possible callees.
+    "callers": [
+        ("callerid", "INTEGER", False), # The function in which the call occurs
+        ("targetid", "INTEGER", False), # The target of the call
+        ("_key", "callerid", "targetid"),
+        ("_fkey", "callerid", "functions", "id")
+    ],
+
 })
 
 
@@ -128,6 +139,7 @@ def post_process(tree, conn):
 
     print " - Generating inheritance graph"
     generate_inheritance(conn)
+    generate_callgraph(conn)
 
     print " - Committing changes"
     conn.commit()
@@ -275,6 +287,19 @@ def process_module_alias(args, conn):
 
     execute_sql(conn, schema.get_insert_sql('module_aliases', args))
 
+def process_impl(args, conn):
+    args['file_id'] = get_file_id(args['file_name'], conn)
+
+    execute_sql(conn, schema.get_insert_sql('impl_defs', args))
+
+def process_typedef(args, conn):
+    args['name'] = args['qualname'].split('::')[-1]
+    args['file_id'] = get_file_id(args['file_name'], conn)
+    args['kind'] = 'typedef'
+    args['language'] = 'rust'
+
+    execute_sql(conn, language_schema.get_insert_sql('types', args))
+
 # When we have a path like a::b::c, we want to have info for a and a::b.
 # Unfortunately Rust does not give us much info, so we have to
 # construct it ourselves from the module info we have.
@@ -394,15 +419,27 @@ def generate_inheritance(conn):
             conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, NULL)",
                          (base, deriv))
 
-def process_impl(args, conn):
-    args['file_id'] = get_file_id(args['file_name'], conn)
+def generate_callgraph(conn):
+    # staticaly  dispatched call
+    sql = """
+        SELECT refs.refid, refs.scopeid
+        FROM function_refs as refs, functions
+        WHERE
+            functions.id = refs.scopeid
+    """
+    for callee, caller in conn.execute(sql):
+        conn.execute("INSERT OR IGNORE INTO callers(callerid, targetid) VALUES (?, ?)",
+                     (caller, callee))
 
-    execute_sql(conn, schema.get_insert_sql('impl_defs', args))
-
-def process_typedef(args, conn):
-    args['name'] = args['qualname'].split('::')[-1]
-    args['file_id'] = get_file_id(args['file_name'], conn)
-    args['kind'] = 'typedef'
-    args['language'] = 'rust'
-
-    execute_sql(conn, language_schema.get_insert_sql('types', args))
+    # dynamically dispatched call
+    sql = """
+        SELECT callee.id, refs.scopeid
+        FROM function_refs as refs, functions as callee, functions as caller
+        WHERE
+            caller.id = refs.scopeid
+            AND refs.refid IS NULL
+            AND refs.declid = callee.declid
+    """
+    for callee, caller in conn.execute(sql):
+        conn.execute("INSERT OR IGNORE INTO callers(callerid, targetid) VALUES (?, ?)",
+                     (caller, callee))
