@@ -250,7 +250,6 @@ def process_method_call(args, conn):
 def process_variable(args, conn):
     args['language'] = 'rust'
     args['type'] = ''
-    args['value'] = '' # XXX for const items etc., we can show the value as a tooltip
     args['file_id'] = get_file_id(args['file_name'], conn)
 
     execute_sql(conn, language_schema.get_insert_sql('variables', args))

@@ -109,12 +109,12 @@ class RustHtmlifier(object):
 
         # Extents for variables defined here
         sql = """
-            SELECT extent_start, extent_end, qualname, value
+            SELECT extent_start, extent_end, qualname
                 FROM variables
               WHERE file_id = ?
         """
-        for start, end, qualname, value in self.conn.execute(sql, args):
-            yield start, end, (self.variable_menu(qualname), qualname, value)
+        for start, end, qualname in self.conn.execute(sql, args):
+            yield start, end, (self.variable_menu(qualname), qualname, None)
 
         # Add references to variables
         sql = """

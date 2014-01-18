@@ -43,8 +43,6 @@ items
 
 methods - check static method with specialisation
 
-non-mut vars (locals, statics) should get a value tooltip
-
 multiple crates
   extern mod
 
@@ -56,6 +54,7 @@ pelmers
 -------
 
 enums (jump to def, find uses of each, find all uses)
+  variant refs should get values on hover
 match (adds var decls)
 
 
