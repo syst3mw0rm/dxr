@@ -19,7 +19,7 @@ _parameters = ["path", "ext",
 "namespace-alias", "namespace-alias-ref",
 "module", "module-ref", "module-use",
 "module-alias", "module-alias-ref",
-"impl", "fn-impls",
+"impl", "fn-impls", "extern-ref",
 "macro", "macro-ref", "callers", "called-by",
 "overridden", "overrides", "warning",
 "warning-opt", "bases", "derived", "member"]
@@ -1052,6 +1052,25 @@ filters = [
         like_name     = "decl.name",
         qual_name     = "decl.qualname"
     ),
+
+    # external items filter
+    ExistsLikeFilter(
+        param         = "extern-ref",
+        filter_sql    = """SELECT 1 FROM unknowns, unknown_refs AS refs
+                           WHERE %s
+                             AND unknowns.id = refs.refid AND refs.file_id = files.id
+                        """,
+        ext_sql       = """SELECT refs.extent_start, refs.extent_end FROM unknown_refs AS refs
+                           WHERE refs.file_id = ?
+                             AND EXISTS (SELECT 1 FROM unknowns
+                                         WHERE %s
+                                           AND unknowns.id = refs.refid)
+                           ORDER BY refs.extent_start
+                        """,
+        like_name     = "unknowns.id",
+        qual_name     = "unknowns.id"
+    ),
+
 
     # macro filter
     ExistsLikeFilter(

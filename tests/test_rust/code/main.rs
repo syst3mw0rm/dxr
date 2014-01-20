@@ -1,9 +1,19 @@
+#[ crate_id = "test" ];
+
 // A simple rust project
+
+extern mod crate2;
+extern mod myextra = "extra";
+//TODO doesn't work right now in rust
+//extern mod core = "github.com/thestinger/rust-core/tree/master/core";
 
 use msalias = sub::sub2;
 use sub::sub2;
+use myextra::arc;
 
 static yy: uint = 25u;
+
+static bob: Option<myextra::bigint::BigInt> = None;
 
 mod sub {
     pub mod sub2 {

@@ -162,7 +162,7 @@ class RustHtmlifier(object):
                 (SELECT path FROM files WHERE files.id = modules.def_file),
                 modules.def_file, modules.file_id
             FROM modules
-            WHERE file_id = ?
+            WHERE file_id = ? AND extent_start > 0
         """
         for start, end, qualname, mod_path, def_file_id, cur_file_id in self.conn.execute(sql, args):
             menu = self.module_menu(qualname)
@@ -181,7 +181,8 @@ class RustHtmlifier(object):
                 FROM modules, module_refs AS refs
               WHERE modules.id = refs.refid AND
                 refs.file_id = ? AND
-                refs.aliasid = 0
+                refs.aliasid = 0  AND
+                modules.extent_start > 0
         """
         for start, end, qualname, path, line, mod_path, def_file_id, cur_file_id in self.conn.execute(sql, args):
             menu = self.module_menu(qualname)
@@ -203,12 +204,11 @@ class RustHtmlifier(object):
                 FROM modules, module_refs AS refs, module_aliases
               WHERE modules.id = refs.refid AND
                 refs.file_id = ? AND
-                refs.aliasid = module_aliases.id
+                refs.aliasid = module_aliases.id AND
+                modules.extent_start > 0
         """
         for start, end, qualname, path, line, mod_path, mod_line in self.conn.execute(sql, args):
             menu = self.module_menu(qualname)
-            if False: #TODO for module decls
-                self.add_jump_definition(menu, mod_path, mod_line, "Jump to module implementation")
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
             self.add_jump_definition(menu, path, line, "jump to alias definition")
             yield start, end, (menu, qualname, None)
@@ -227,13 +227,174 @@ class RustHtmlifier(object):
                 FROM module_aliases, modules
               WHERE module_aliases.file_id = ? AND
                 module_aliases.refid = modules.id AND
-                module_aliases.name != modules.name
+                module_aliases.name != modules.name AND
+                module_aliases.location IS NULL
         """
         for start, end, qualname, mod_path, mod_line in self.conn.execute(sql, args):
             menu = self.module_alias_menu(qualname)
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
             yield start, end, (menu, qualname, None)
 
+        # extern mods to known local crates
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                module_aliases.qualname,
+                (SELECT path FROM files WHERE files.id = crates.file_id),
+                crates.file_line
+            FROM module_aliases, crates
+            WHERE module_aliases.file_id = ? AND
+                module_aliases.location = crates.name
+        """
+        for start, end, qualname, mod_path, mod_line in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            self.add_jump_definition(menu, mod_path, mod_line, "jump to crate")
+            yield start, end, (menu, qualname, None)
+
+        # extern mods to standard library crates
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                module_aliases.qualname,
+                extern_locations.docurl,
+                extern_locations.srcurl,
+                extern_locations.dxrurl
+            FROM module_aliases, extern_locations
+            WHERE module_aliases.file_id = ? AND
+                module_aliases.location = extern_locations.location
+        """
+        for start, end, qualname, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            self.add_link_to_menu(menu, dxrurl,
+                                  "go to DXR index",
+                                  "go to DXR index of this crate on " + get_domain(srcurl))
+            self.add_link_to_menu(menu, srcurl,
+                                  "go to source",
+                                  "go to source code for this crate on " + get_domain(srcurl))
+            self.add_link_to_menu(menu, docurl,
+                                  "go to docs",
+                                  "go to documentation for this crate on " + get_domain(docurl))
+            yield start, end, (menu, qualname, None)
+
+        # extern mods to unknown local crates
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                module_aliases.qualname
+            FROM module_aliases
+            WHERE module_aliases.file_id = ? AND
+                NOT EXISTS (SELECT 1 FROM extern_locations WHERE module_aliases.location = extern_locations.location) AND
+                NOT EXISTS (SELECT 1 FROM crates WHERE module_aliases.location = crates.name) AND
+                module_aliases.location IS NOT NULL
+        """
+        for start, end, qualname in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            yield start, end, (menu, qualname, None)
+
+        # Add references to extern mods via aliases (known local crates)
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                refs.qualname,
+                (SELECT path FROM files WHERE files.id = module_aliases.file_id),
+                module_aliases.file_line,
+                (SELECT path FROM files WHERE files.id = crates.file_id),
+                crates.file_line
+            FROM modules, module_refs AS refs, module_aliases, crates
+            WHERE modules.id = refs.refid AND
+                refs.file_id = ? AND
+                refs.aliasid = module_aliases.id AND
+                module_aliases.location = crates.name
+        """
+        for start, end, qualname, path, line, mod_path, mod_line in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            self.add_jump_definition(menu, mod_path, mod_line, "jump to crate")
+            self.add_jump_definition(menu, path, line, "jump to alias definition")
+            yield start, end, (menu, qualname, None)
+
+        # Add references to extern mods via aliases (standard library crates)
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                refs.qualname,
+                (SELECT path FROM files WHERE files.id = module_aliases.file_id),
+                module_aliases.file_line,
+                extern_locations.docurl,
+                extern_locations.srcurl,
+                extern_locations.dxrurl
+            FROM modules, module_refs AS refs, module_aliases, extern_locations
+            WHERE modules.id = refs.refid AND
+                refs.file_id = ? AND
+                refs.aliasid = module_aliases.id AND
+                module_aliases.location = extern_locations.location
+        """
+        for start, end, qualname, path, line, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            self.add_link_to_menu(menu, dxrurl,
+                                  "go to DXR index",
+                                  "go to DXR index of this crate on " + get_domain(srcurl))
+            self.add_link_to_menu(menu, srcurl,
+                                  "go to source",
+                                  "go to source code for this crate on " + get_domain(srcurl))
+            self.add_link_to_menu(menu, docurl,
+                                  "go to docs",
+                                  "go to documentation for this crate on " + get_domain(docurl))
+            self.add_jump_definition(menu, path, line, "jump to alias definition")
+            yield start, end, (menu, qualname, None)
+
+        # Add references to extern mods via aliases (unknown local crates)
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                refs.qualname,
+                (SELECT path FROM files WHERE files.id = module_aliases.file_id),
+                module_aliases.file_line
+            FROM modules, module_refs AS refs, module_aliases
+            WHERE modules.id = refs.refid AND
+                refs.file_id = ? AND
+                refs.aliasid = module_aliases.id AND
+                NOT EXISTS (SELECT 1 FROM extern_locations WHERE module_aliases.location = extern_locations.location) AND
+                NOT EXISTS (SELECT 1 FROM crates WHERE module_aliases.location = crates.name) AND
+                module_aliases.location IS NOT NULL
+        """
+        for start, end, qualname, path, line in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname)
+            self.add_jump_definition(menu, path, line, "jump to alias definition")
+            yield start, end, (menu, qualname, None)
+
+        # Add references to external items (standard libraries)
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                unknowns.crate, unknowns.id,
+                extern_locations.docurl,
+                extern_locations.srcurl,
+                extern_locations.dxrurl
+            FROM unknowns, unknown_refs AS refs, extern_locations
+            WHERE unknowns.id = refs.refid AND
+                refs.file_id = ? AND
+                unknowns.crate = extern_locations.location
+        """
+        for start, end, crate, uid, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
+            menu = self.extern_menu(uid)
+            self.add_link_to_menu(menu, dxrurl,
+                                  "go to DXR index for crate",
+                                  "go to DXR index of this crate on " + get_domain(srcurl))
+            self.add_link_to_menu(menu, srcurl,
+                                  "go to source for crate",
+                                  "go to source code for this crate on " + get_domain(srcurl))
+            self.add_link_to_menu(menu, docurl,
+                                  "go to docs for crate",
+                                  "go to documentation for this crate on " + get_domain(docurl))
+            yield start, end, (menu, 'extern$' + str(uid), None)
+
+        # Add references to external items
+        sql = """
+            SELECT refs.extent_start, refs.extent_end,
+                unknowns.crate, unknowns.id
+            FROM unknowns, unknown_refs AS refs
+            WHERE unknowns.id = refs.refid AND refs.file_id = ? AND
+                NOT EXISTS (SELECT 1 FROM extern_locations WHERE unknowns.crate = extern_locations.location)
+        """
+        for start, end, crate, uid in self.conn.execute(sql, args):
+            menu = self.extern_menu(uid)
+            yield start, end, (menu, 'extern$' + str(uid), None)
 
 
     def search(self, query):
@@ -346,8 +507,8 @@ class RustHtmlifier(object):
             'icon':   'reference'
         })
         menu.append({
-            'text':   "Find uses",
-            'title':  "Find 'use's of this module",
+            'text':   "Find use items",
+            'title':  "Find instances of this module in 'use' items",
             'href':   self.search("+module-use:%s" % self.quote(qualname)),
             'icon':   'reference'
         })
@@ -358,8 +519,19 @@ class RustHtmlifier(object):
         menu = []
         menu.append({
             'text':   "Find references",
-            'title':  "Find references to this module alias",
+            'title':  "Find references to this alias",
             'href':   self.search("+module-alias-ref:%s" % self.quote(qualname)),
+            'icon':   'reference'
+        })
+        return menu
+
+    def extern_menu(self, uid):
+        """ Build menu for an external item """
+        menu = []
+        menu.append({
+            'text':   "Find references",
+            'title':  "Find references to this item",
+            'href':   self.search("+extern-ref:%s" % str(uid)),
             'icon':   'reference'
         })
         return menu
@@ -376,6 +548,18 @@ class RustHtmlifier(object):
             'icon':   'jump'
         })
 
+    def add_link_to_menu(self, menu, url, text, long_text):
+        if not url:
+            return menu;
+
+        menu.insert(0, {
+            'text':   text,
+            'title':  long_text,
+            'href':   url,
+            'icon':   'jump'
+        })
+        return menu
+
     def annotations(self):
         # TODO - compiler warnings
         return []
@@ -391,6 +575,12 @@ class RustHtmlifier(object):
             if len(name) == 0: continue
             links.append(('function', name, "#%s" % line))
         yield (30, 'functions', links)
+
+# helper method, extract the 'foo.com' from 'http://foo.com/bar.html'
+def get_domain(url):
+    start = url.find('//') + 2
+    return url[start:url.find('/', start)]
+
 
 # XXX Does anyone use anything other than rs nowadays?
 _patterns = ('*.rs', '*.rc')
