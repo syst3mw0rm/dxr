@@ -183,6 +183,9 @@ class RustHtmlifier(object):
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
             yield start, end, (menu, qualname, None)
 
+        # TODO refactor all this crap so we only do things once (rather than three times), even if that means
+        # a few more sql statements.
+        
         # extern mods to known local crates
         sql = """
             SELECT module_aliases.extent_start,

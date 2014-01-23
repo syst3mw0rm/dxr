@@ -2,7 +2,7 @@
 
 // A simple rust project
 
-extern mod crate2;
+//extern mod crate2;
 extern mod myextra = "extra";
 //TODO doesn't work right now in rust
 //extern mod core = "github.com/thestinger/rust-core/tree/master/core";
@@ -14,6 +14,7 @@ use myextra::arc;
 static yy: uint = 25u;
 
 static bob: Option<myextra::bigint::BigInt> = None;
+
 
 mod sub {
     pub mod sub2 {
@@ -35,6 +36,9 @@ mod sub {
 
 pub mod SameDir;
 pub mod SubDir;
+
+#[path = "SameDir3.rs"]
+pub mod SameDir2;
 
 struct nofields;
 struct some_fields {
@@ -70,6 +74,8 @@ impl some_fields {
 type MyType = ~some_fields;
 
 fn hello((z, a) : (u32, ~str)) {
+    SameDir2::hello(43);
+
     println(yy.to_str());
     let (x, y): (u32, u32) = (5, 3);
     println(x.to_str());
