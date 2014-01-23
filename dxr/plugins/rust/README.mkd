@@ -15,9 +15,9 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-* REBASE
+** TODOs
 
-scopes so we can query items in a module, class etc.
+* REBASE
 
 * sort out the rhs bar
 
@@ -25,19 +25,6 @@ rename dxr -> dump ...
 
 methods - check static method with specialisation
 check extern mod github link
-
-<<<<<<< HEAD
-how to handle macros - are we checking the ast before or after expansion?
-  - I think after, and this is kinda busted sometimes
-
-refactor to share python code with the clang plugin?
-
-Need to add a layer of indirection for ast ids -> db ids (in the dxr (and clang) plugin) so we
-don't clash with rows from the clang plugin (or make the language part of the id or something)
-
-compiler warnings
-=======
-** TODOs
 
 refactor + style
 
@@ -48,9 +35,6 @@ currently break things I think.
 
 bugs
 ----
-
-text search - case sensitivity bug - the 'i' in the search query screws things up
-  update libtrilite
 
 macros give overlapping extents
 
