@@ -15,30 +15,32 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-REBASE
+* REBASE
 
 scopes so we can query items in a module, class etc.
 
-sort out the rhs bar
+* sort out the rhs bar
 
 rename dxr -> dump ...
 
 methods - check static method with specialisation
 check extern mod github link
 
+** TODOs
+
+refactor + style
+
+Currently if we index the std_libs, we don't give them the usual std_lib links,
+we should give them the docs link in addition to the local links. This would
+currently break things I think.
 
 bugs
 ----
 
-need to escape quotes in values
-
 text search - case sensitivity bug - the 'i' in the search query screws things up
   update libtrilite
 
-use aliases have module, not file, scope
-
-need to take into account the path attribute when looking up modules (because attributes can screw up the names)
-
+macros give overlapping extents
 
 items
 -----
