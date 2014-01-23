@@ -329,7 +329,8 @@ def convert_ids(args, conn):
             return v
 
     new_args = {k: convert(k, v) for k, v in args.items() if not k.endswith('crate')}
-    new_args['file_id'] = get_file_id(args['file_name'], conn)
+    if 'file_name' in args:
+        new_args['file_id'] = get_file_id(args['file_name'], conn)
     return new_args
 
 # Returns True if the refid in the args points to an item in an external crate.
@@ -351,24 +352,19 @@ def add_external_item(args, conn):
     execute_sql(conn, schema.get_insert_sql('unknowns', item_args))
     return True
 
+def process_function_impl(args, conn):
+    args['name'] = args['qualname'].split('::')[-1]
+    args['language'] = 'rust'
+    args['args'] = ''
+    args['type'] = ''
+    execute_sql(conn, language_schema.get_insert_sql('functions', convert_ids(args, conn)))
+
 def process_function(args, conn):
     mod_parents[args['id']] = args['scopeid']
-
-    args['name'] = args['qualname'].split('::')[-1]
-    args['language'] = 'rust'
-    args['args'] = ''
-    args['type'] = ''
-
-    execute_sql(conn, language_schema.get_insert_sql('functions', convert_ids(args, conn)))
+    process_function_impl(args, conn)
 
 def process_method_decl(args, conn):
-    args['name'] = args['qualname'].split('::')[-1]
-    args['language'] = 'rust'
-    args['args'] = ''
-    args['type'] = ''
-
-    # TODO either share code with process_function, or store the decl somewhere else
-    execute_sql(conn, language_schema.get_insert_sql('functions', convert_ids(args, conn)))
+    process_function_impl(args, conn)
 
 def process_fn_call(args, conn):
     if add_external_item(args, conn):
@@ -407,7 +403,11 @@ def process_struct(args, conn):
     args['kind'] = 'struct'
     args['language'] = 'rust'
 
-    # TODO add to scopes too
+    scope_args = {'id': args['id'],
+                  'name' : args['name'],
+                  'language': 'rust'}
+    execute_sql(conn, language_schema.get_insert_sql('scopes', convert_ids(scope_args, conn)))
+
     execute_sql(conn, language_schema.get_insert_sql('types', convert_ids(args, conn)))
 
 def process_trait(args, conn):
@@ -417,7 +417,11 @@ def process_trait(args, conn):
     args['kind'] = 'trait'
     args['language'] = 'rust'
 
-    # TODO add to scopes too
+    scope_args = {'id': args['id'],
+                  'name' : args['name'],
+                  'language': 'rust'}
+    execute_sql(conn, language_schema.get_insert_sql('scopes', convert_ids(scope_args, conn)))
+
     execute_sql(conn, language_schema.get_insert_sql('types', convert_ids(args, conn)))
 
 def process_struct_ref(args, conn):
@@ -434,7 +438,11 @@ def process_module(args, conn):
     args['language'] = 'rust'
     args['def_file'] = get_file_id(args['def_file'], conn)
 
-    # TODO add to scopes too
+    scope_args = {'id': args['id'],
+                  'name' : args['name'],
+                  'language': 'rust'}
+    execute_sql(conn, language_schema.get_insert_sql('scopes', convert_ids(scope_args, conn)))
+
     execute_sql(conn, schema.get_insert_sql('modules', convert_ids(args, conn)))
 
 def process_mod_ref(args, conn):
@@ -452,7 +460,11 @@ def process_module_alias(args, conn):
 def process_impl(args, conn):
     mod_parents[args['id']] = args['scopeid']
 
-    # TODO add to scopes too
+    scope_args = {'id': args['id'],
+                  'name' : 'impl',
+                  'language': 'rust'}
+    execute_sql(conn, language_schema.get_insert_sql('scopes', convert_ids(scope_args, conn)))
+
     execute_sql(conn, schema.get_insert_sql('impl_defs', convert_ids(args, conn)))
 
 def process_typedef(args, conn):

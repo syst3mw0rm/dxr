@@ -15,9 +15,9 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-* REBASE
+** TODOs
 
-scopes so we can query items in a module, class etc.
+* REBASE
 
 * sort out the rhs bar
 
@@ -26,7 +26,6 @@ rename dxr -> dump ...
 methods - check static method with specialisation
 check extern mod github link
 
-** TODOs
 
 refactor + style
 
@@ -36,9 +35,6 @@ currently break things I think.
 
 bugs
 ----
-
-text search - case sensitivity bug - the 'i' in the search query screws things up
-  update libtrilite
 
 macros give overlapping extents
 

@@ -235,9 +235,6 @@ class RustHtmlifier(object):
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
             yield start, end, (menu, qualname, None)
 
-        # TODO refactor all this crap so we only do things once (rather than three times), even if that means
-        # a few more sql statements.
-        
         # extern mods to known local crates
         sql = """
             SELECT module_aliases.extent_start,
@@ -268,15 +265,7 @@ class RustHtmlifier(object):
         """
         for start, end, qualname, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
             menu = self.module_alias_menu(qualname)
-            self.add_link_to_menu(menu, dxrurl,
-                                  "go to DXR index",
-                                  "go to DXR index of this crate on " + get_domain(srcurl))
-            self.add_link_to_menu(menu, srcurl,
-                                  "go to source",
-                                  "go to source code for this crate on " + get_domain(srcurl))
-            self.add_link_to_menu(menu, docurl,
-                                  "go to docs",
-                                  "go to documentation for this crate on " + get_domain(docurl))
+            self.std_lib_links(menu, docurl, srcurl, dxrurl)
             yield start, end, (menu, qualname, None)
 
         # extern mods to unknown local crates
@@ -331,15 +320,7 @@ class RustHtmlifier(object):
         """
         for start, end, qualname, path, line, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
             menu = self.module_alias_menu(qualname)
-            self.add_link_to_menu(menu, dxrurl,
-                                  "go to DXR index",
-                                  "go to DXR index of this crate on " + get_domain(srcurl))
-            self.add_link_to_menu(menu, srcurl,
-                                  "go to source",
-                                  "go to source code for this crate on " + get_domain(srcurl))
-            self.add_link_to_menu(menu, docurl,
-                                  "go to docs",
-                                  "go to documentation for this crate on " + get_domain(docurl))
+            self.std_lib_links(menu, docurl, srcurl, dxrurl)
             self.add_jump_definition(menu, path, line, "jump to alias definition")
             yield start, end, (menu, qualname, None)
 
@@ -376,15 +357,7 @@ class RustHtmlifier(object):
         """
         for start, end, crate, uid, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
             menu = self.extern_menu(uid)
-            self.add_link_to_menu(menu, dxrurl,
-                                  "go to DXR index for crate",
-                                  "go to DXR index of this crate on " + get_domain(srcurl))
-            self.add_link_to_menu(menu, srcurl,
-                                  "go to source for crate",
-                                  "go to source code for this crate on " + get_domain(srcurl))
-            self.add_link_to_menu(menu, docurl,
-                                  "go to docs for crate",
-                                  "go to documentation for this crate on " + get_domain(docurl))
+            self.std_lib_links(menu, docurl, srcurl, dxrurl, " for crate")
             yield start, end, (menu, 'extern$' + str(uid), None)
 
         # Add references to external items
@@ -412,7 +385,24 @@ class RustHtmlifier(object):
             qualname = '"' + qualname + '"'
         return qualname
 
-    #TODO factor out 'find references'
+    def std_lib_links(self, menu, docurl, srcurl, dxrurl, extra_text = ""):
+        self.add_link_to_menu(menu, dxrurl,
+                              "go to DXR index" + extra_text,
+                              "go to DXR index of this crate on " + get_domain(dxrurl))
+        self.add_link_to_menu(menu, srcurl,
+                              "go to source" + extra_text,
+                              "go to source code for this crate on " + get_domain(srcurl))
+        self.add_link_to_menu(menu, docurl,
+                              "go to docs" + extra_text,
+                              "go to documentation for this crate on " + get_domain(docurl))
+
+    def add_find_references(self, menu, qualname, search_term, kind):
+        menu.append({
+            'text':   "Find references",
+            'title':  "Find references to this " + kind,
+            'href':   self.search("+" + search_term + ":%s" % self.quote(qualname)),
+            'icon':   'reference'
+        })
 
     def function_menu(self, qualname, def_id, declpath=None, declline=None, is_trait_method=False):
         """ Build menu for a function """
@@ -449,23 +439,13 @@ class RustHtmlifier(object):
             'href':   self.search("+called-by:%s" % self.quote(qualname)),
             'icon':   'method'
         })
-        menu.append({
-            'text':   "Find references",
-            'title':  "Find references to this function",
-            'href':   self.search("+function-ref:%s" % self.quote(qualname)),
-            'icon':   'reference'
-        })
+        self.add_find_references(menu, qualname, "function-ref", "function")
         return menu
 
     def variable_menu(self, qualname):
         """ Build menu for a variable """
         menu = []
-        menu.append({
-            'text':   "Find references",
-            'title':  "Find reference to this variable",
-            'href':   self.search("+var-ref:%s" % self.quote(qualname)),
-            'icon':   'field'
-        })
+        self.add_find_references(menu, qualname, "var-ref", "variable")
         return menu
 
     def type_menu(self, qualname, kind):
@@ -492,23 +472,13 @@ class RustHtmlifier(object):
                 'href':   self.search("+impl:%s" % self.quote(qualname)),
                 'icon':   'reference'
             })
-        menu.append({
-            'text':   "Find references",
-            'title':  "Find references to this " + kind,
-            'href':   self.search("+type-ref:%s" % self.quote(qualname)),
-            'icon':   'reference'
-        })
+        self.add_find_references(menu, qualname, "type-ref", kind)
         return menu
 
     def module_menu(self, qualname):
         """ Build menu for a module """
         menu = []
-        menu.append({
-            'text':   "Find references",
-            'title':  "Find references to this module",
-            'href':   self.search("+module-ref:%s" % self.quote(qualname)),
-            'icon':   'reference'
-        })
+        self.add_find_references(menu, qualname, "module-ref", "module")
         menu.append({
             'text':   "Find use items",
             'title':  "Find instances of this module in 'use' items",
@@ -520,23 +490,13 @@ class RustHtmlifier(object):
     def module_alias_menu(self, qualname):
         """ Build menu for a module alias """
         menu = []
-        menu.append({
-            'text':   "Find references",
-            'title':  "Find references to this alias",
-            'href':   self.search("+module-alias-ref:%s" % self.quote(qualname)),
-            'icon':   'reference'
-        })
+        self.add_find_references(menu, qualname, "module-alias-ref", "alias")
         return menu
 
     def extern_menu(self, uid):
         """ Build menu for an external item """
         menu = []
-        menu.append({
-            'text':   "Find references",
-            'title':  "Find references to this item",
-            'href':   self.search("+extern-ref:%s" % str(uid)),
-            'icon':   'reference'
-        })
+        self.add_find_references(menu, str(uid), "extern-ref", "item")
         return menu
 
     def add_jump_definition(self, menu, path, line, text="Jump to definition"):
