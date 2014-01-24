@@ -15,20 +15,24 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-** TODOs
+*** review and merge pelmers' stuff
 
-* REBASE
+** REBASE
 
 * sort out the rhs bar
 
 rename dxr -> dump ...
 
-methods - check static method with specialisation
-check extern mod github link
+refactor + style (dxr.rs)
 
-refactor + style
+do all the makefile/config stuff properly instead of hacking it
 
-Currently if we index the std_libs, we don't give them the usual std_lib links,
+check
+  methods - check static method with specialisation
+  check extern mod github link
+
+
+Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
 we should give them the docs link in addition to the local links. This would
 currently break things I think.
 >>>>>>> fixing some bugs
@@ -52,3 +56,4 @@ enums (jump to def, find uses of each, find all uses)
   variant refs should get values on hover
 match (adds var decls)
 
+next: type params, lifetime params, warnings, ???
