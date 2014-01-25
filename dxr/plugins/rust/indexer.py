@@ -58,7 +58,7 @@ schema = dxr.schema.Schema({
         ("refid", "INTEGER", False),      # ID of the module being aliased
         ("name", "VARCHAR(256)", False),
         ("qualname", "VARCHAR(256)", False),
-        ("scopeid", "INTEGER", False),
+        ("scopeid", "INTEGER", True),
         ("location", "VARCHAR(256)", True), # only used for extern mod
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
@@ -71,7 +71,7 @@ schema = dxr.schema.Schema({
     "function_refs": [
         ("refid", "INTEGER", True),      # ID of the function defintion, if it exists
         ("declid", "INTEGER", True),     # ID of the funtion declaration, if it exists
-        ("scopeid", "INTEGER", True),    # ID of the scope in which the call occurs
+        ("scopeid", "INTEGER", False),   # ID of the scope in which the call occurs
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
         ("_location", True),
@@ -81,7 +81,7 @@ schema = dxr.schema.Schema({
     ],
     # References to variables
     "variable_refs": [
-        ("refid", "INTEGER", True),      # ID of the variable being referenced
+        ("refid", "INTEGER", False),      # ID of the variable being referenced
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
         ("_location", True),
@@ -91,7 +91,7 @@ schema = dxr.schema.Schema({
     ],
     # References to types
     "type_refs": [
-        ("refid", "INTEGER", True),      # ID of the type being referenced
+        ("refid", "INTEGER", False),      # ID of the type being referenced
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
         ("qualname", "VARCHAR(256)", False), # Used when we don't have a refid from rustc
@@ -654,17 +654,7 @@ def generate_inheritance(conn):
                      (base, deriv))
 
     # transitive inheritance
-    closure = set(inheritance)
-    while True:
-        next_set = set([(b,dd) for (b,d) in closure for (bb,dd) in closure if d == bb])
-        next_set |= closure
-
-        if next_set == closure:
-            break
-
-        closure = next_set
-
-    for (base, deriv) in closure:
+    for (base, deriv) in closure(inheritance):
         if (base, deriv) not in inheritance:
             conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, NULL)",
                          (base, deriv))
@@ -727,20 +717,22 @@ def generate_scopes(conn):
         conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, 'scope')",
             (child, child))
 
-    # transitive scoping
-    closure = set(mod_parents.items())
-    while True:
-        next_set = set([(b,dd) for (b,d) in closure for (bb,dd) in closure if d == bb])
-        next_set |= closure
-
-        if next_set == closure:
-            break
-
-        closure = next_set
-
-    for (child, parent) in closure:
+    # transitivity
+    for (child, parent) in closure(mod_parents.items()):
         if (child, parent) not in mod_parents.items():
             conn.execute("INSERT OR IGNORE INTO impl(tbase, tderived, inhtype) VALUES (?, ?, 'scope')",
                          (parent, child))
 
     mod_parents = {}
+
+# compute the (non-refexive) transitive closure of a list
+def closure(input):
+    closure = set(input)
+    while True:
+        next_set = set([(b,dd) for (b,d) in closure for (bb,dd) in closure if d == bb])
+        next_set |= closure
+
+        if next_set == closure:
+            return closure
+
+        closure = next_set
