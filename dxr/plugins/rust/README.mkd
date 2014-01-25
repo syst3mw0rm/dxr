@@ -16,21 +16,19 @@ TODO
 ----
 
 *** review and merge pelmers' stuff
-  - make file stuff
 
 ** REBASE
 
-* sort out the rhs bar
+* run on rustc
 
 rename dxr -> dump ...
 
 refactor + style (dxr.rs)
 
-do all the makefile/config stuff properly instead of hacking it
-
 check
   methods - check static method with specialisation
   check extern mod github link
+  enums show up in the navigation bar
 
 
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,

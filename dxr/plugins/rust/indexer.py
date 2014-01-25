@@ -31,6 +31,7 @@ schema = dxr.schema.Schema({
         ("name", "VARCHAR(256)", False),
         ("qualname", "VARCHAR(256)", False),
         ("def_file", "INTEGER", False),
+        ("kind", "VARCHAR(32)", False),
         ("scopeid", "INTEGER", False),
         ("extent_start", "INTEGER", True),
         ("extent_end", "INTEGER", True),
@@ -452,6 +453,7 @@ def process_module(args, conn):
     args['name'] = args['qualname'].split('::')[-1]
     args['language'] = 'rust'
     args['def_file'] = get_file_id(args['def_file'], conn)
+    args['kind'] = 'mod'
 
     scope_args = {'id': args['id'],
                   'name' : args['name'],
@@ -519,6 +521,7 @@ def process_external_crate(args, conn):
             'name': args['name'],
             'qualname': "0$" + args['name'],
             'def_file': get_file_id(args['file_name'], conn),
+            'kind': 'extern',
             'scopeid': '0',
             'extent_start': -1,
             'extent_end': -1}
