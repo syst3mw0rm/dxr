@@ -468,16 +468,121 @@ class RustHtmlifier(object):
         return []
 
     def links(self):
-        # TODO when we have methods in the functions table, we will need to be more
-        # selective here
-        # TODO only want top level functions
-        # TODO probably need to think about how to organise the whole side bar thing properly
-        sql = "SELECT name, file_line FROM functions WHERE file_id = ? ORDER BY file_line"
+        # modules
+        for name, id in self.top_level_mods():
+            links = []
+            for mod_name, line in self.scoped_items('modules', id):
+                links.append(('struct', mod_name, "#%s" % line))
+            for type_name, line in self.scoped_items('types', id):
+                links.append(('type', type_name, "#%s" % line))
+            for method_name, line in self.scoped_items('functions', id):
+                links.append(('method', method_name, "#%s" % line))
+            if links:
+                yield (20, name, links)
+
+        # structs
+        for name, id in self.top_level_scopes('struct'):
+            links = []
+            for field_name, line in self.scoped_items('variables', id):
+                links.append(('field', field_name, "#%s" % line))
+            # methods from impls
+            sql = """
+                SELECT fn.name, fn.file_line
+                FROM functions AS fn, impl_defs AS impl
+                WHERE fn.scopeid = impl.id AND
+                    impl.refid = ?
+                ORDER BY fn.file_line
+                """
+            for method_name, line in self.conn.execute(sql, (id,)):
+                if len(method_name) == 0: continue
+                links.append(('method', method_name, "#%s" % line))
+            if links:
+                yield (40, name, links)
+
+        # traits
+        for name, id in self.top_level_scopes('trait'):
+            links = []
+            for method_name, line in self.scoped_items('functions', id):
+                links.append(('method', method_name, "#%s" % line))
+            if links:
+                yield (30, name, links)
+
+        # enums TODO check this works once we merge enum support
+        for name, id in self.top_level_scopes('enum'):
+            links = []
+            for variant, line in self.scoped_items('variables', id):
+                links.append(('field', variant, "#%s" % line))
+            for variant, line in self.scoped_items('structs', id):
+                links.append(('field', variant, "#%s" % line))
+            if links:
+                yield (35, name, links)
+
+        # functions
         links = []
+        for name, line in self.top_level_items('functions'):
+            links.append(('method', name, "#%s" % line))
+        if links:
+            yield (50, 'functions', links)
+
+        # statics
+        links = []
+        for name, line in self.top_level_items('variables'):
+            links.append(('field', name, "#%s" % line))
+        if links:
+            yield (60, 'statics', links)
+
+    def top_level_items(self, kind):
+        sql = """
+            SELECT item.name, item.file_line
+            FROM %s AS item
+            WHERE item.file_id = ? AND
+                (item.scopeid = 0 OR
+                 EXISTS (SELECT 1 FROM modules AS mod WHERE item.scopeid = mod.id AND mod.def_file <> mod.file_id))
+            ORDER BY item.file_line
+            """%kind
         for name, line in self.conn.execute(sql, (self.file_id,)):
             if len(name) == 0: continue
-            links.append(('function', name, "#%s" % line))
-        yield (30, 'functions', links)
+            yield (name,line)
+
+    def top_level_mods(self):
+        sql = """
+            SELECT name, id
+            FROM modules AS m
+            WHERE file_id = ? AND
+                file_id = def_file AND
+                (scopeid = 0 OR
+                 EXISTS (SELECT 1 FROM modules AS mod WHERE m.scopeid = mod.id AND mod.def_file <> mod.file_id))
+            ORDER BY file_line
+            """
+        for name, id in self.conn.execute(sql, (self.file_id,)):
+            if len(name) == 0: continue
+            yield (name,id)
+
+    def top_level_scopes(self, kind):
+        sql = """
+            SELECT name, id
+            FROM types
+            WHERE kind = '%s' AND
+                file_id = ? AND
+                (scopeid = 0 OR
+                 EXISTS (SELECT 1 FROM modules AS mod WHERE types.scopeid = mod.id AND mod.def_file <> mod.file_id))
+            ORDER BY file_line
+            """%kind
+        for name, id in self.conn.execute(sql, (self.file_id,)):
+            if len(name) == 0: continue
+            yield (name,id)
+
+    def scoped_items(self, kind, scope):
+        sql = """
+            SELECT name, file_line
+            FROM %s
+            WHERE scopeid == ?
+            ORDER BY file_line
+            """%kind
+        for name, line in self.conn.execute(sql, (scope,)):
+            if len(name) == 0: continue
+            yield(name, line)
+
 
 # helper method, extract the 'foo.com' from 'http://foo.com/bar.html'
 def get_domain(url):
