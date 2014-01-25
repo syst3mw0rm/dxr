@@ -4,5 +4,5 @@ crate2: crate2.rs
 code: main.rs crate2
 	$(RUST) -L$(@D) $< -o $@
 clean:
-	rm -rf code
+	rm -rf code *.so
 
