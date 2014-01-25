@@ -16,6 +16,7 @@ TODO
 ----
 
 *** review and merge pelmers' stuff
+  - make file stuff
 
 ** REBASE
 

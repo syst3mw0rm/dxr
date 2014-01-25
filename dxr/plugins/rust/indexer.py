@@ -6,7 +6,6 @@ from dxr.languages import language_schema
 __all__ = dxr.plugins.indexer_exports()
 
 PLUGIN_NAME = 'rust'
-PATH_TO_RUSTC = "/home/ncameron/rust/x86_64-unknown-linux-gnu/stage1/bin/rustc"
 RUST_DXR_FLAG = " --save-analysis"
 
 def pre_process(tree, env):
@@ -15,7 +14,8 @@ def pre_process(tree, env):
     # We'll store all the havested metadata in the plugins temporary folder.
     plugin_folder = os.path.join(tree.config.plugin_folder, PLUGIN_NAME)
     temp_folder = os.path.join(tree.temp_folder, 'plugins', PLUGIN_NAME)
-    env['RUST'] = PATH_TO_RUSTC + RUST_DXR_FLAG
+    if 'RUST' in env:
+        env['RUST'] += RUST_DXR_FLAG
     if 'RUSTFLAGS' in env:
         env['RUSTFLAGS'] += RUST_DXR_FLAG
     else:
