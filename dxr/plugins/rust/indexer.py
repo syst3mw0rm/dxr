@@ -16,10 +16,10 @@ def pre_process(tree, env):
     temp_folder = os.path.join(tree.temp_folder, 'plugins', PLUGIN_NAME)
     if 'RUST' in env:
         env['RUST'] += RUST_DXR_FLAG
-    if 'RUSTFLAGS' in env:
-        env['RUSTFLAGS'] += RUST_DXR_FLAG
+    if 'RUSTFLAGS_STAGE2' in env:
+        env['RUSTFLAGS_STAGE2'] += RUST_DXR_FLAG
     else:
-        env['RUSTFLAGS'] = RUST_DXR_FLAG
+        env['RUSTFLAGS_STAGE2'] = RUST_DXR_FLAG
     env['DXR_RUST_OBJECT_FOLDER'] = tree.object_folder
     env['DXR_RUST_TEMP_FOLDER'] = temp_folder
 
@@ -156,7 +156,14 @@ schema = dxr.schema.Schema({
     ],
 })
 
+src_folder = ''
+
 def post_process(tree, conn):
+    global src_folder
+    src_folder = tree.source_folder
+    if not src_folder.endswith('/'):
+        src_folder += '/'
+
     print "rust-dxr post-process"
 
     print " - Adding tables"
@@ -211,6 +218,9 @@ std_libs = ['std', 'extra', 'native', 'green', 'syntax', 'rustc', 'rustpkg', 'ru
 local_libs = []
 
 def get_file_id(file_name, conn):
+    if file_name.startswith(src_folder):
+        file_name = file_name[len(src_folder):]
+
     file_id = files.get(file_name, False)
 
     if file_id is not False:

@@ -501,6 +501,11 @@ class RustHtmlifier(object):
 
     def add_jump_definition(self, menu, path, line, text="Jump to definition"):
         """ Add a jump to definition to the menu """
+        if not path:
+            print "Can't add jump to empty path. Menu:", menu
+            print "text: ", text
+            return
+            
         # Definition url
         url = self.tree.config.wwwroot + '/' + self.tree.name + '/source/' + path
         url += "#%s" % line
@@ -535,6 +540,8 @@ class RustHtmlifier(object):
                 links.append(('struct', mod_name, "#%s" % line))
             for type_name, line in self.scoped_items('types', id):
                 links.append(('type', type_name, "#%s" % line))
+            for method_name, line in self.scoped_items('variables', id):
+                links.append(('field', method_name, "#%s" % line))
             for method_name, line in self.scoped_items('functions', id):
                 links.append(('method', method_name, "#%s" % line))
             if links:
