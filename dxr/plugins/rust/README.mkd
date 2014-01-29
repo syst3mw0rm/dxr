@@ -20,6 +20,8 @@ TODO
 ** REBASE
 
 * run on rustc
+  - address bugs
+  - if clang plugin is disabled, we don't have targets table and search for callers fails
 
 rename dxr -> dump ...
 
