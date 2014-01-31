@@ -23,9 +23,13 @@ TODO
   - address bugs
   - if clang plugin is disabled, we don't have targets table and search for callers fails
 
+do spans better
+
 rename dxr -> dump ...
 
 refactor + style (dxr.rs)
+
+TODOs/FIXMEs
 
 check
   methods - check static method with specialisation
@@ -41,7 +45,6 @@ currently break things I think.
 bugs
 ----
 
-macros give overlapping extents
 
 items
 -----
