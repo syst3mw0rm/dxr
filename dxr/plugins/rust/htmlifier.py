@@ -579,7 +579,7 @@ class RustHtmlifier(object):
             links = []
             for variant, line in self.scoped_items('variables', id):
                 links.append(('field', variant, "#%s" % line))
-            for variant, line in self.scoped_items('structs', id):
+            for variant, line in self.scoped_items('types', id):
                 links.append(('field', variant, "#%s" % line))
             if links:
                 yield (35, name, links)
