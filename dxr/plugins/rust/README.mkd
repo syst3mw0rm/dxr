@@ -16,12 +16,16 @@ TODO
 ----
 
 *** review and merge pelmers' stuff
+  - scope_id for fields in struct enums is wrong
+  - refactor visit_pat to use collected_paths - merge this
 
 ** REBASE
 
 * run on rustc
   - address bugs
   - if clang plugin is disabled, we don't have targets table and search for callers fails
+
+* eliminate warnings
 
 do spans better
 
@@ -34,7 +38,6 @@ TODOs/FIXMEs
 check
   methods - check static method with specialisation
   check extern mod github link
-  enums show up in the navigation bar
 
 
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
@@ -49,7 +52,7 @@ bugs
 items
 -----
 
-type param defs + refs
+type param defs + refs - pelmers
 lifetime param defs + refs
 ...
 
@@ -60,4 +63,4 @@ enums (jump to def, find uses of each, find all uses)
   variant refs should get values on hover
 match (adds var decls)
 
-next: type params, lifetime params, warnings, ???
+next: type params, lifetime params, warnings, macros, ???
