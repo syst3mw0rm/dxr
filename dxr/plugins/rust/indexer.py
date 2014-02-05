@@ -212,7 +212,8 @@ crate_map = {}
 
 # We know these crates come from the rust distribution (probably, the user could
 # override that, but lets assume for now...).
-std_libs = ['std', 'extra', 'native', 'green', 'syntax', 'rustc', 'rustpkg', 'rustdoc', 'rustuv']
+std_libs = ['std', 'arena', 'extra', 'extra', 'flate', 'glob', 'green', 'native',
+            'rustc', 'rustdoc', 'rustuv', 'semver', 'std', 'syntax', 'term', 'uv']
 # These are the crates used in the current crate and indexed by DXR in the
 # current run.
 local_libs = []
@@ -270,7 +271,6 @@ def process_csv(file_name, conn, limit):
 
             change_count += 1
             if change_count > 10000:
-                print " - Committing changes (eager commit)"
                 conn.commit()
                 change_count = 0
                 # this is a bit of hack and means limit can never be > 10000
