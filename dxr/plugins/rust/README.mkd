@@ -15,10 +15,6 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-*** review and merge pelmers' stuff
-  - scope_id for fields in struct enums is wrong
-  - refactor visit_pat to use collected_paths - merge this
-
 ** REBASE
 
 * run on rustc
@@ -26,14 +22,20 @@ TODO
   - if clang plugin is disabled, we don't have targets table and search for callers fails
 
 * eliminate warnings
+  factor out write! calls and write! calls with default (ie on Option<T>)
 
 do spans better
 
 rename dxr -> dump ...
 
 refactor + style (dxr.rs)
+  use def_id_of_def instead of matching Defs
+  == LOCALCRATE -> is_local
+  factor out all the writing stuff into a separate object
 
 TODOs/FIXMEs
+
+when searching via a menu, should be case sensitive by default
 
 check
   methods - check static method with specialisation
