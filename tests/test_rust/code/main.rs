@@ -16,6 +16,7 @@ static yy: uint = 25u;
 
 static bob: Option<myextra::bigint::BigInt> = None;
 
+// buglink test - see issue #1337.
 
 mod sub {
     pub mod sub2 {
