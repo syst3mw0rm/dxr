@@ -21,8 +21,8 @@ TODO
   - address bugs
   - if clang plugin is disabled, we don't have targets table and search for callers fails
 
-* eliminate warnings
-  factor out write! calls and write! calls with default (ie on Option<T>)
+factor out write! calls with default (ie on Option<T>) - sub_span
+  started - need to finish this off
 
 do spans better
 
@@ -30,8 +30,10 @@ rename dxr -> dump ...
 
 refactor + style (dxr.rs)
   use def_id_of_def instead of matching Defs
-  == LOCALCRATE -> is_local
-  factor out all the writing stuff into a separate object
+  use self.session.str_of insead og get_ident.get
+  use span instead of &span
+  FmtMap
+  factor out Option<sub_span> stuff - macro?
 
 TODOs/FIXMEs
 
