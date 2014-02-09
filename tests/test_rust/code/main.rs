@@ -9,7 +9,7 @@ extern mod myextra = "extra";
 
 use msalias = sub::sub2;
 use sub::sub2;
-use myextra::arc;
+use myextra::bigint::BigInt;
 use std::io::stdio::println;
 
 static yy: uint = 25u;
@@ -79,6 +79,8 @@ impl some_fields {
 
 }
 
+impl SuperTrait for (~nofields, ~some_fields) {}
+
 type MyType = ~some_fields;
 
 fn f_with_params<T: SomeTrait>(x: &T) {
@@ -139,6 +141,31 @@ fn hello((z, a) : (u32, ~str)) {
     println(x);
 
     let s: ~SomeTrait = ~some_fields {field1: 43};
+    let s2: ~some_fields = ~some_fields {field1: 43};
+    let s3 = ~nofields;
+
+    s.Method(43);
+    s3.Method(43);
+    s2.Method(43);
+
+    let y: u32 = 56;
+    // static method on struct
+    let r = some_fields::stat(y);
+    // trait static method, calls override
+    // TODO what is the syntax for this?
+    let r = SomeTrait::stat2(s2);
+    // trait static method, calls default
+    let r = SomeTrait::stat2(s3);
+
+    let s4 = s3 as ~SubTrait;
+    s4.Method(43);
+
+    let closure = |x: u32, s: &SomeTrait| {
+        s.Method(23);
+        return x + y;
+    };
+
+    let z = closure(10, s);
 }
 
 fn main() {

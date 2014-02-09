@@ -831,7 +831,8 @@ def non_overlapping_refs(tags):
                 open_ref = None
                 yield True
             else:  # It's an evil open tag of a misnested tag.
-                warn('htmlifier plugins requested overlapping <a> tags. Fix the plugins.')
+                print '\n\n\nhtmlifier plugins requested overlapping <a> tags. Fix the plugins.'
+                print point, "\n\n\n", payload
                 blacklist.add(payload)
                 yield False
         else:
