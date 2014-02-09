@@ -15,34 +15,34 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
-** REBASE
-
-* run on rustc
-  - address bugs
-  - if clang plugin is disabled, we don't have targets table and search for callers fails
-
-factor out write! calls with default (ie on Option<T>) - sub_span
-  started - need to finish this off
+run on rustc
+  - address bugs/warnings
+  * if clang plugin is disabled, we don't have targets table and search for callers fails
 
 do spans better
 
+? remove code for loading crates from urls
+  if not, check extern mod github link
+
+
 rename dxr -> dump ...
+  save-analysis -> dump-analysis
 
 refactor + style (dxr.rs)
-  use def_id_of_def instead of matching Defs
-  use self.session.str_of insead og get_ident.get
-  use span instead of &span
   FmtMap
   factor out Option<sub_span> stuff - macro?
 
 TODOs/FIXMEs
 
-when searching via a menu, should be case sensitive by default
+* when searching via a menu, should be case sensitive by default - DXR bug
+  context_menu.js:138
+  &case=true
 
 check
   methods - check static method with specialisation
-  check extern mod github link
 
+
+* for std libs, we should be able to reconstruct path for docs, since they are regular
 
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
 we should give them the docs link in addition to the local links. This would
@@ -51,6 +51,7 @@ currently break things I think.
 bugs
 ----
 
+direct search for rust files doesn't seem to work - resolve.rs, at least
 
 items
 -----

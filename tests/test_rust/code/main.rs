@@ -9,7 +9,7 @@ extern mod myextra = "extra";
 
 use msalias = sub::sub2;
 use sub::sub2;
-use myextra::arc;
+use myextra::bigint::BigInt;
 use std::io::stdio::println;
 
 static yy: uint = 25u;
@@ -108,6 +108,8 @@ impl SubTrait for nofields {
     }
 }
 
+impl SuperTrait for (~nofields, ~some_fields) {}
+
 type MyType = ~some_fields;
 
 fn f_with_params<T: SomeTrait>(x: &T) {
@@ -186,6 +188,13 @@ fn hello((z, a) : (u32, ~str)) {
 
     let s4 = s3 as ~SubTrait;
     s4.Method(43);
+
+    let closure = |x: u32, s: &SomeTrait| {
+        s.Method(23);
+        return x + y;
+    };
+
+    let z = closure(10, s);
 }
 
 fn main() {

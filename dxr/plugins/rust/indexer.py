@@ -312,6 +312,9 @@ def get_next_id():
 def find_id(crate, node):
     global id_map
 
+    if not node:
+        return None
+
     if node == '0':
         return 0
 
@@ -423,7 +426,7 @@ def process_struct(args, conn, kind = 'struct'):
 
     # Used for fixing up the refid in fixup_struct_ids
     if args['ctor_id'] != '0':
-        ctor_ids[args['ctor_id']] = find_id('', args['id'])
+        ctor_ids[find_id_cur(args['ctor_id'])] = find_id_cur(args['id'])
 
     args['name'] = args['qualname'].split('::')[-1]
     args['kind'] = kind
@@ -506,7 +509,6 @@ def process_type_ref(args, conn):
         args['qualname'] = ''
     if add_external_item(args, conn):
         return;
-
     execute_sql(conn, schema.get_insert_sql('type_refs', convert_ids(args, conn)))
 
 def process_extern_mod(args, conn):
@@ -652,7 +654,7 @@ def fixup_struct_ids(conn):
     # Sometimes, we get one, sometimes the other. This method fixes up any refs
     # to the latter into refs to the former.
     for ctor in ctor_ids.keys():
-        conn.execute('UPDATE type_refs SET refid=? WHERE refid=?', (ctor_ids[ctor],ctor))
+        conn.execute('UPDATE type_refs SET refid=? WHERE refid=?', (ctor_ids[ctor], ctor))
 
 def process_inheritance(args, conn):
     inheritance.append((args['base'], args['derived']))
