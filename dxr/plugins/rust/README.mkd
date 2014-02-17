@@ -16,7 +16,7 @@ TODO
 ----
 
 run on rustc
-  - address bugs/warnings
+  - bad span bug
   * if clang plugin is disabled, we don't have targets table and search for callers fails
 
 do spans better
@@ -34,15 +34,13 @@ refactor + style (dxr.rs)
 
 TODOs/FIXMEs
 
-* when searching via a menu, should be case sensitive by default - DXR bug
-  context_menu.js:138
-  &case=true
-
 check
   methods - check static method with specialisation
 
 
 * for std libs, we should be able to reconstruct path for docs, since they are regular
+
+* (TODO in indexer.rs) module refs in paths to outside the crate
 
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
 we should give them the docs link in addition to the local links. This would
@@ -52,7 +50,7 @@ currently break things I think.
 bugs
 ----
 
-direct search for rust files doesn't seem to work - resolve.rs, at least
+** not identifying std module
 
 items
 -----

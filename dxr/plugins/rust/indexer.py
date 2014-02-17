@@ -559,6 +559,15 @@ def process_crate(args, conn):
 # We have the qualname for the module (e.g, a or a::b) but we do not have
 # the refid
 def fixup_sub_mods(conn):
+    fixup_sub_mods_impl(conn, 'modules', 'module_refs')
+    # paths leading up to a static method have a module path, then a type at the
+    # so we have to fixup the type in the same way as we do modules.
+    fixup_sub_mods_impl(conn, 'types', 'type_refs')
+
+#TODO - does not seem to work for external crates - refid = 0, crateid = 0
+# they must be in the same module crate as their parent though, and we can cache
+# module name and scope -> crate and always get a hit, so maybe we can win.
+def fixup_sub_mods_impl(conn, table_name, table_ref_name):
     # First create refids for module refs whose qualnames match the qualname of
     # the module (i.e., no aliases).
     conn.execute("""

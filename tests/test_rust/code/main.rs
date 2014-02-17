@@ -1,5 +1,6 @@
 #[ crate_id = "test" ];
 #[feature(struct_variant)];
+
 // A simple rust project
 
 //extern mod crate2;
@@ -7,9 +8,10 @@ extern mod myextra = "extra";
 //TODO doesn't work right now in rust
 //extern mod core = "github.com/thestinger/rust-core/tree/master/core";
 
+use myextra::bigint::BigInt;
+
 use msalias = sub::sub2;
 use sub::sub2;
-use myextra::bigint::BigInt;
 use std::io::stdio::println;
 
 static yy: uint = 25u;
@@ -77,6 +79,19 @@ impl SuperTrait for some_fields {
 
 impl some_fields {
 
+impl SuperTrait for nofields {
+}
+impl SomeTrait for nofields {
+    fn Method(&self, x: u32) -> u32 {
+        self.Method(x);
+        43
+    }    
+}
+
+impl SubTrait for nofields {
+    fn provided_method(&self) -> u32 {
+        21
+    }
 }
 
 impl SuperTrait for (~nofields, ~some_fields) {}
@@ -107,7 +122,7 @@ enum SomeStructEnum {
 
 fn matchSomeEnum(val: SomeEnum) {
     match val {
-        Ints(int1, int2) => { hello((1u32,~"a")); println((int1+int2).to_str()); }
+        Ints(int1, int2) => { println((int1+int2).to_str()); }
         Floats(float1, float2) => { println((float2*float1).to_str()); }
         Strings(_, _, s3) => { println(s3); }
         MyTypes(mt1, mt2) => { println((mt1.field1 - mt2.field1).to_str()); }
@@ -194,3 +209,4 @@ fn main() {
     let s9: SomeStructEnum = EnumStruct2{f1: ~some_fields{field1:10}, f2: ~s2};
     matchSomeStructEnum(s9);
 }
+
