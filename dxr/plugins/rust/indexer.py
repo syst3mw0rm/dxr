@@ -154,6 +154,27 @@ schema = dxr.schema.Schema({
         ("_fkey", "refid", "unknowns", "id"),
         ("_index", "refid"),
     ],
+
+
+    # FIXME the following are from the Clang plugin - we don't use them, but
+    # they must be present so some queries don't fail.
+    "typedef_refs": [
+        ("refid", "INTEGER", True),      # ID of the typedef being referenced
+        ("extent_start", "INTEGER", True),
+        ("extent_end", "INTEGER", True),
+        ("_location", True),
+        ("_location", True, 'referenced'),
+        ("_fkey", "refid", "typedefs", "id"),
+        ("_index", "refid"),
+    ],
+    "targets": [
+        ("targetid", "INTEGER", False), # The target of the call
+        ("funcid", "INTEGER", False),   # One of the functions in the target set
+        ("_key", "targetid", "funcid"),
+        ("_fkey", "funcid", "functions", "id"),
+        ("_index", "funcid"),
+    ],
+
 })
 
 src_folder = ''
