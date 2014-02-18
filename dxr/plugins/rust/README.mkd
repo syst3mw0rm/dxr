@@ -17,7 +17,6 @@ TODO
 
 run on rustc
   - bad span bug
-  * if clang plugin is disabled, we don't have targets table and search for callers fails
 
 * for std libs, we should be able to reconstruct path for docs, since they are regular
 
