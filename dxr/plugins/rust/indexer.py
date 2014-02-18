@@ -212,8 +212,8 @@ crate_map = {}
 
 # We know these crates come from the rust distribution (probably, the user could
 # override that, but lets assume for now...).
-std_libs = ['std', 'arena', 'extra', 'extra', 'flate', 'glob', 'green', 'native',
-            'rustc', 'rustdoc', 'rustuv', 'semver', 'std', 'syntax', 'term', 'uv']
+std_libs = ['arena', 'collections', 'extra', 'extra', 'flate', 'fourcc', 'getopts', 'glob', 'green', 'native', 'num', 
+            'rustc', 'rustdoc', 'rustuv', 'semver', 'serialize', 'std', 'sync', 'syntax', 'term', 'uuid', 'uv']
 # These are the crates used in the current crate and indexed by DXR in the
 # current run.
 local_libs = []

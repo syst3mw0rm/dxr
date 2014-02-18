@@ -1,8 +1,11 @@
 #[ crate_id = "test" ];
 #[feature(struct_variant)];
 
+extern crate num;
+use std::io::stdio::println;
+use num::bigint::BigInt;
 // A simple rust project
-
+/*
 //extern mod crate2;
 extern mod myextra = "extra";
 //TODO doesn't work right now in rust
@@ -210,3 +213,5 @@ fn main() {
     matchSomeStructEnum(s9);
 }
 
+*/
+fn main() {}

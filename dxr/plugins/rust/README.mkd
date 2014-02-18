@@ -19,11 +19,12 @@ run on rustc
   - bad span bug
   * if clang plugin is disabled, we don't have targets table and search for callers fails
 
+* for std libs, we should be able to reconstruct path for docs, since they are regular
+
 do spans better
 
 ? remove code for loading crates from urls
   if not, check extern mod github link
-
 
 rename dxr -> dump ...
   save-analysis -> dump-analysis
@@ -37,26 +38,27 @@ TODOs/FIXMEs
 check
   methods - check static method with specialisation
 
-
-* for std libs, we should be able to reconstruct path for docs, since they are regular
-
-* (TODO in indexer.rs) module refs in paths to outside the crate
+(TODO in indexer.rs) module refs in paths to outside the crate
 
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
 we should give them the docs link in addition to the local links. This would
 currently break things I think.
 >>>>>>> fixing some bugs
 
+references to `std` - because the import is implicit, we can't do our normal stuff, therefore
+uses of std doin't get highlighted. Would be nice to have the usual 'jump to docs', etc. for
+uses.
+
+
 bugs
 ----
 
-** not identifying std module
 
 items
 -----
 
 type param defs + refs - pelmers
-lifetime param defs + refs
+lifetime param defs + refs - pelmers
 ...
 
 pelmers
