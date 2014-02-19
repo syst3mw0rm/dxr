@@ -2,16 +2,14 @@
 #[feature(struct_variant)];
 
 extern crate num;
-use std::io::stdio::println;
-use num::bigint::BigInt;
 // A simple rust project
-/*
-//extern mod crate2;
-extern mod myextra = "extra";
-//TODO doesn't work right now in rust
-//extern mod core = "github.com/thestinger/rust-core/tree/master/core";
 
-use myextra::bigint::BigInt;
+//extern crate krate2;
+extern crate myextra = "extra";
+//TODO doesn't work right now in rust
+//extern crate core = "github.com/thestinger/rust-core/tree/master/core";
+
+use num::bigint::BigInt;
 
 use msalias = sub::sub2;
 use sub::sub2;
@@ -230,6 +228,3 @@ fn main() {
     let s9: SomeStructEnum = EnumStruct2{f1: ~some_fields{field1:10}, f2: ~s2};
     matchSomeStructEnum(s9);
 }
-
-*/
-fn main() {}
