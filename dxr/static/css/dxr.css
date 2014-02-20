@@ -237,6 +237,9 @@ mark {
     position: fixed;
     top: 0;
     background-color: #f5f5f5;
+    background-image: linear-gradient(to bottom, #f8f8f8, #eaeaea);
+    border-bottom: 1px solid #6d6d6d;
+    border-top: 1px solid #f5f5f5;
     color: #333;
     padding: .8rem;
     width: 100%;
@@ -330,7 +333,9 @@ mark {
 .top-of-tree a:link,
 .top-of-tree a:visited,
 .breadcrumbs a:link,
-.breadcrumbs a:visited {
+.breadcrumbs a:visited,
+.bubble a:link,
+.bubble a:visited {
     color: #0095dd;
 }
 .top-of-tree a:hover,
@@ -349,13 +354,16 @@ mark {
 }
 /* Navigation panel */
 .panel {
-    position: absolute;
+    position: fixed;
     top: 105px;
     right: 22px;
     background-color: #fff;
     border: 1px solid #e0e0e0;
     border-right: 0;
     min-width: 12rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100% - 150px);
 }
 .panel button{
     display: inline-block;
@@ -419,27 +427,9 @@ mark {
     background-color: #e0e0e0;
     text-decoration: underline;
 }
-/* user messages */
-.user-message {
+.no-results {
     clear: both;
-    padding: .5rem;
-    border-bottom: 3px solid darkgreen;
-}
-.user-message.info {
-    background: -webkit-linear-gradient(rgb(129, 188, 46), rgb(101, 147, 36));
-    background: -moz-linear-gradient(rgb(129, 188, 46), rgb(101, 147, 36));
-    background: linear-gradient(rgb(129, 188, 46), rgb(101, 147, 36));
-    color: white;
-}
-.simple {
-    background: -webkit-linear-gradient(green, darkgreen);
-    background: -moz-linear-gradient(green, darkgreen);
-    background: -o-linear-gradient(green, darkgreen);
-    background: linear-gradient(green, darkgreen);
-    color: white;
-}
-.simple a {
-    text-decoration: underline;
+    font-style: italic;
 }
 #fetch-results {
     display: none;
@@ -463,9 +453,13 @@ mark {
     padding-right: 8rem;
     transition: padding-right .2s;
 }
+
 @media only screen and (min-device-width: 320px) {
     .text_search .query {
         width: 62%;
+    }
+    .bubble {
+        margin-right: 38%;  /* 100% minus the above */
     }
     input[type="submit"] {
         margin-right: 14%;
@@ -498,6 +492,9 @@ mark {
     .text_search .query {
         width: 84%;
     }
+    .bubble {
+        margin-right: 16%;  /* 100% minus the above */
+    }
     input[type="submit"] {
         margin-right: 16.3%;
     }
@@ -505,6 +502,7 @@ mark {
         right: 13%;
     }
 }
+
 .sf-select-options .selector-option-label {
     display: inline-block;
     vertical-align: top;
@@ -515,4 +513,62 @@ mark {
     margin-right: 12rem;  /* Width of label plus padding */
     vertical-align: top;
     white-space: normal;
+}
+
+/* Message bubble */
+.bubble {
+    border: 1px solid #ccc;
+    border-radius: 9px;
+    color: #6c6c6c;
+    display: none;
+    font-size: 85%;
+    padding: 0.1rem 30px 0.1rem 34px;
+    position: absolute;
+    top: .25rem;
+}
+/* The big triangle */
+.bubble:before {
+    content: "";
+    position: absolute;
+    border-style: solid;
+    border-color: #ccc transparent;
+    /* reduce the damage in FF3.0 */
+    display: block;
+    width: 0;
+
+    top: -9px; /* value = - border-top-width - border-bottom-width */
+    bottom: auto;
+    right: auto;
+    left: 11px; /* controls horizontal position */
+    border-width: 0 9px 9px;
+}
+/* The small triangle */
+.bubble:after {
+    content: "";
+    position: absolute;
+    border-style: solid;
+    border-color: #fff transparent;
+    /* reduce the damage in FF3.0 */
+    display: block;
+    width: 0;
+
+    top: -8px; /* value = - border-top-width - border-bottom-width */
+    bottom: auto;
+    right: auto;
+    left: 11px; /* value = (:before left) + (:before border-left) - (:after border-left) */
+    border-width: 0 9px 9px;
+}
+.bubble.info {
+    background: white url(/static/images/info.gif) 12px 0 / 3ex no-repeat;
+}
+.bubble.warning {
+    background: white url('/static/images/warning.gif') 10px -2px / 3.5ex no-repeat;
+}
+.bubble.error {
+    background: white url(/static/images/error.gif) 12px 0 / 3ex no-repeat;
+}
+.zero-size-container {
+    position: relative;
+    height: 0;
+    width: 100%;
 }

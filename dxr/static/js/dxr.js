@@ -1,6 +1,8 @@
 /* jshint devel:true, esnext: true */
 /* globals nunjucks: true, $ */
 
+var htmlEscape;
+
 $(function() {
     'use strict';
 
@@ -23,15 +25,10 @@ $(function() {
     // timeouts.search has elapsed).
     timeouts.history = 2000 - timeouts.search;
 
-    /**
-     * Disable and enable pointer events on scroll begin and scroll end to
-     * avoid unnecessary paints and recalcs caused by hover effets.
-     * @see http://www.thecssninja.com/javascript/pointer-events-60fps
-     */
-    var docElem = document.documentElement;
-
     // Tell nunjucks our base location for template files.
-    nunjucks.configure('dxr/static/templates/');
+    var nunjucksEnv = nunjucks.configure('dxr/static/templates/',
+                                         {autoescape: true});
+    htmlEscape = nunjucksEnv.getFilter('escape');
 
     // Return the maximum number of pixels the document can be scrolled.
     function getMaxScrollY() {
@@ -64,51 +61,31 @@ $(function() {
     // We also need to cater for the above scenario when a user clicks on in page links.
     window.onhashchange = function() {
         scrollIntoView(window.location.hash.substr(1));
+    };
+
+    /**
+     * Hang an advisory message off the search field.
+     * @param {string} level - The seriousness: 'info', 'warning', or 'error'
+     * @param {string} html - The HTML message to be displayed
+     */
+    function showBubble(level, html) {
+        $('.bubble').html(html)
+                    .removeClass('error warning info')
+                    .addClass(level)
+                    .show();
+    }
+
+    function hideBubble() {
+        $('.bubble').fadeOut(300);
     }
 
     /**
-     * Presents the user with a notification message
-     * @param {string} type - The type of notification to set, must be one of info, warn or error.
-     * @param {string} message - The message to be displayed.
-     * @param {Object} target - The element to use as the display target for the message.
+     * If the `case` param is in the URL, returns its boolean value. Otherwise,
+     * returns null.
      */
-    function setUserMessage(type, message, target) {
-        var messageContainer = document.createElement('p'),
-            msg = document.createTextNode(message);
-
-        messageContainer.appendChild(msg);
-
-        switch(type) {
-            case 'info':
-                messageContainer.setAttribute('class', 'user-message info');
-                break;
-            case 'warn':
-                messageContainer.setAttribute('class', 'user-message warn');
-                break;
-            case 'error':
-                messageContainer.setAttribute('class', 'user-message error');
-                break;
-            default:
-                console.log('Unrecognized message type. See function documentation for supported types.');
-                return;
-        }
-        // If we are already showing a user message in the target, do not append again.
-        if (!$('.message', target).length) {
-            target.append(messageContainer);
-        }
-    }
-
-    /**
-     * Removes previously added notification message from target.
-     * @param {Object} target - The element to use as the display target for the message.
-     */
-    function removeUserMessage(target) {
-        var userMessage = $('.message', target);
-
-        // If the user message container is found, remove it completely.
-        if (userMessage.length) {
-            userMessage.remove();
-        }
+    function caseFromUrl() {
+        var match = /case=(\w+)/.exec(location.search);
+        return match ? (match[1] === 'true') : null;
     }
 
     /**
@@ -164,27 +141,19 @@ $(function() {
         defaultDataLimit = 100;
 
     // Has the user been redirected to a direct result?
-    if (location.search.indexOf('from') > -1) {
+    var fromQuery = /[(&|^)from]=([^&]+)/.exec(location.search);
+    if (fromQuery !== null) {
         // Offer the user the option to see all the results instead.
-        var viewResultsTxt = 'You have been taken to a direct result ' +
-                             '<a href="{{ url }}">click here to view all search results.</a>',
-            searchUrl = constants.data('search'),
-            fromQuery = /[&?from]=(\w+)/.exec(location.search),
-            isCaseSensitive = /case=(\w+)/.exec(location.search);
+        var viewResultsTxt = 'Showing a direct result. <a href="{{ url }}">Show all results instead.</a>',
+            isCaseSensitive = caseFromUrl();
 
-        searchUrl += '?q=' + fromQuery[1];
-
-        if(isCaseSensitive) {
-            searchUrl += '&case=' + isCaseSensitive[1];
+        var searchUrl = constants.data('search') + '?q=' + fromQuery[1];
+        if (isCaseSensitive !== null) {
+            searchUrl += '&case=' + isCaseSensitive;
         }
 
-        var msgContainer = $('<p />', {
-                'class': 'user-message simple',
-                'html': viewResultsTxt.replace('{{ url }}', searchUrl)
-            }),
-            fileContainer = $('#file');
-
-        fileContainer.before(msgContainer);
+        $('#query').val(decodeURIComponent(fromQuery[1]));
+        showBubble('info', viewResultsTxt.replace('{{ url }}', searchUrl));
     }
 
     $(window).scroll(function() {
@@ -210,7 +179,7 @@ $(function() {
         params.format = 'json';
         params['case'] = isCaseSensitive;
         params.limit = limit;
-        params.offset = offset
+        params.offset = offset;
 
         return search + '?' + $.param(params);
     }
@@ -252,7 +221,7 @@ $(function() {
      * Add an entry into the history stack whenever we do a new search.
      */
     function pushHistoryState(data) {
-        var searchUrl = constants.data('search') + '?' + data['query_string'];
+        var searchUrl = constants.data('search') + '?' + data.query_string;
         history.pushState({}, '', searchUrl);
     }
 
@@ -287,7 +256,7 @@ $(function() {
 
                 //Resubmit query for the next set of results.
                 $.getJSON(buildAjaxURL(query, caseSensitiveBox.prop('checked'), defaultDataLimit, dataOffset), function(data) {
-                    if(data.results.length > 0) {
+                    if (data.results.length > 0) {
                         var state = {};
 
                         // Update result count
@@ -318,6 +287,14 @@ $(function() {
     }
 
     /**
+     * Saves checkbox checked property to localStorage and invokes queryNow function.
+     */
+    function updateLocalStorageAndQueryNow(){
+       localStorage.setItem('caseSensitive', $('#case').prop('checked'));
+       queryNow();
+    }
+
+    /**
      * Clears any existing query timer and queries immediately.
      */
     function queryNow() {
@@ -332,20 +309,20 @@ $(function() {
      * @param {bool} append - Should the content be appended or overwrite
      */
     function populateResults(tmpl, data, append) {
-        data['wwwroot'] = dxr.wwwroot;
-        data['tree'] = dxr.tree;
-        data['top_of_tree'] = dxr.wwwroot + '/' + data['tree'] + '/source/';
-        data['trees'] = data.trees;
+        data.wwwroot = dxr.wwwroot;
+        data.tree = dxr.tree;
+        data.top_of_tree = dxr.wwwroot + '/' + data.tree + '/source/';
+        data.trees = data.trees;
 
         var params = {
             q: data.query,
             case: data.is_case_sensitive
-        }
-        data['query_string'] = $.param(params);
+        };
+        data.query_string = $.param(params);
 
         // If no data is returned, inform the user.
         if (!data.results.length) {
-            data['user_message'] = contentContainer.data('no-results');
+            data.user_message = contentContainer.data('no-results');
             contentContainer.empty().append(nunjucks.render(tmpl, data));
         } else {
 
@@ -372,7 +349,7 @@ $(function() {
     function doQuery() {
 
         function oneMoreRequest() {
-            if (requestsInFlight == 0) {
+            if (requestsInFlight === 0) {
                 $('#search-box').addClass('in-progress');
             }
             requestsInFlight += 1;
@@ -380,7 +357,7 @@ $(function() {
 
         function oneFewerRequest() {
             requestsInFlight -= 1;
-            if (requestsInFlight == 0) {
+            if (requestsInFlight === 0) {
                 $('#search-box').removeClass('in-progress');
             }
         }
@@ -392,12 +369,17 @@ $(function() {
             lineHeight = parseInt(contentContainer.css('line-height'), 10),
             limit = previousDataLimit = parseInt((window.innerHeight / lineHeight) + 25);
 
-        if (query.length < 3) {
+        if (query.length === 0) {
+            hideBubble();  // Don't complain when I delete what I typed. You didn't complain when it was empty before I typed anything.
+            return;
+        } else if (query.length < 3) {
+            showBubble('info', 'Enter at least 3 characters to do a search.');
             return;
         }
 
+        hideBubble();
         nextRequestNumber += 1;
-        oneMoreRequest()
+        oneMoreRequest();
         $.getJSON(buildAjaxURL(query, caseSensitiveBox.prop('checked'), limit), function(data) {
             // New results, overwrite
             if (myRequestNumber > displayedRequestNumber) {
@@ -405,20 +387,20 @@ $(function() {
                 populateResults('results_container.html', data, false);
                 historyWaiter = setTimeout(pushHistoryState, timeouts.history, data);
             }
-            oneFewerRequest()
+            oneFewerRequest();
         })
         .fail(function(jqxhr, textStatus, error) {
-            var errorMessage = searchForm.data('error');
+            var errorMessage = 'An error occurred. Please try again.';
 
-            oneFewerRequest()
+            oneFewerRequest();
 
             // A newer response already arrived and is displayed. Don't both complaining about this old one.
             if (myRequestNumber < displayedRequestNumber)
                 return;
 
             if (error)
-                errorMessage += ' Error: ' + error;
-            setUserMessage('error', errorMessage, $('.text_search', searchForm));
+                errorMessage += '(' + error + ')';
+            showBubble('error', errorMessage);
         });
     }
 
@@ -426,7 +408,18 @@ $(function() {
     queryField.on('input', querySoon);
 
     // Update the search when the case-sensitive box is toggled, canceling any pending query:
-    caseSensitiveBox.on('change', queryNow);
+    caseSensitiveBox.on('change', updateLocalStorageAndQueryNow);
+
+
+    var urlCaseSensitive = caseFromUrl();
+    if (urlCaseSensitive !== null) {
+        // Any case-sensitivity specification in the URL overrides what was in localStorage:
+        localStorage.setItem('caseSensitive', urlCaseSensitive);
+    } else {
+        // Restore checkbox state from localStorage:
+        caseSensitiveBox.prop('checked', 'true' === localStorage.getItem('caseSensitive'));
+    }
+
 
     /**
      * Adds aleading 0 to numbers less than 10 and greater that 0
