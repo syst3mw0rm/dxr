@@ -37,6 +37,8 @@ TODOs/FIXMEs
 check
   methods - check static method with specialisation
 
+stability support
+
 (TODO in indexer.rs) module refs in paths to outside the crate
 
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
@@ -51,6 +53,9 @@ uses.
 bugs
 ----
 
+types in enum variants get treated like variable decls - should be type uses
+
+check span for module_alias on line 12
 
 items
 -----
