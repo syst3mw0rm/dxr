@@ -15,6 +15,8 @@ hack the compiler to output dxr csvs and make it more generic later...
 TODO
 ----
 
+* span-o-matic
+
 run on rustc
   - bad span bug
 
@@ -29,8 +31,8 @@ rename dxr -> dump ...
   save-analysis -> dump-analysis
 
 refactor + style (dxr.rs)
-  FmtMap
-  factor out Option<sub_span> stuff - macro?
+  record macros
+  factor out Option<sub_span> stuff - macro
 
 TODOs/FIXMEs
 
@@ -53,9 +55,9 @@ uses.
 bugs
 ----
 
-types in enum variants get treated like variable decls - should be type uses
+* types in enum variants get treated like variable decls - should be type uses
 
-check span for module_alias on line 12
+check span for module_alias on line 12 - tell pelmers - its the way we have to do mods - we don't generate overlapping spans
 
 items
 -----
