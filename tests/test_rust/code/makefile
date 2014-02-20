@@ -1,7 +1,7 @@
 all: code  
-crate2: crate2.rs
+krate2: krate2.rs
 	$(RUST) $< -o $@
-code: main.rs crate2
+code: main.rs krate2
 	$(RUST) -L$(@D) $< -o $@
 clean:
 	rm -rf code *.so
