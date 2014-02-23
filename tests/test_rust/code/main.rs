@@ -57,19 +57,29 @@ struct some_fields {
 }
 
 trait SuperTrait {
-
 }
 
 trait SomeTrait : SuperTrait {
     fn Method(&self, x: u32) -> u32;
+
+    fn prov(&self, x: u32) -> u32 {
+        println(x.to_str());
+        42
+    }  
+    fn stat2(x: &Self) -> u32 {
+        32
+    }  
 }
 
 trait SubTrait: SomeTrait {
-
+    fn provided_method(&self) -> u32 {
+        42
+    }
 }
 
 impl SomeTrait for some_fields {
     fn Method(&self, x: u32) -> u32 {
+        println(x.to_str());
         self.field1
     }  
 }
@@ -79,6 +89,14 @@ impl SuperTrait for some_fields {
 }
 
 impl some_fields {
+    fn stat(x: u32) -> u32 {
+        println(x.to_str());
+        42
+    }  
+    fn stat2(x: &some_fields) -> u32 {
+        42
+    }  
+}
 
 impl SuperTrait for nofields {
 }

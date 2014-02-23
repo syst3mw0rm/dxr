@@ -77,7 +77,7 @@ schema = dxr.schema.Schema({
         ("_location", True),
         ("_location", True, 'referenced'),
         ("_fkey", "refid", "functions", "id"),
-        ("_index", "refid"),
+        ("_fkey", "declid", "functions", "id"),
     ],
     # References to variables
     "variable_refs": [
@@ -110,7 +110,7 @@ schema = dxr.schema.Schema({
         ("extent_end", "INTEGER", True),
         ("_location", True),
         # id is not a primary key - an impl can have two representations - one
-        # for the trait and on for the struct.
+        # for the trait and one for the struct.
         ("_fkey", "refid", "types", "id"),
     ],
     # We use a simpler version of the callgraph than the Clang plugin - there is
@@ -666,18 +666,12 @@ def fixup_sub_mods_impl(conn, table_name, table_ref_name):
         if mod:
             (refid, qualname) = mod
             conn.execute("""
-                UPDATE module_refs SET
+                UPDATE %s SET
                    refid = ?,
-                   aliasid = ?,
                    qualname = ?
                 WHERE extent_start=?
-                """,
-                (refid, aliasid, qualname, ex_start))
-
-def process_type_ref(args, conn):
-    args['file_id'] = get_file_id(args['file_name'], conn)
-
-    execute_sql(conn, schema.get_insert_sql('type_refs', args))
+                """%table_ref_name,
+                (refid, qualname, ex_start))
 
 def fixup_struct_ids(conn):
     # Sadness. Structs have an id for their definition and an id for their ctor.

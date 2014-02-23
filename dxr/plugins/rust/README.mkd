@@ -46,7 +46,6 @@ stability support
 Currently if we index fns etc. from std_libs, we don't give them the usual std_lib links,
 we should give them the docs link in addition to the local links. This would
 currently break things I think.
->>>>>>> fixing some bugs
 
 references to `std` - because the import is implicit, we can't do our normal stuff, therefore
 uses of std doin't get highlighted. Would be nice to have the usual 'jump to docs', etc. for
