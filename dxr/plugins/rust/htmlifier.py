@@ -398,7 +398,7 @@ class RustHtmlifier(object):
 
     def add_find_references(self, menu, qualname, search_term, kind):
         menu.append({
-            'text':   "Find references",
+            'html':   "Find references",
             'title':  "Find references to this " + kind,
             'href':   self.search("+" + search_term + ":%s" % self.quote(qualname)),
             'icon':   'reference'
@@ -421,20 +421,20 @@ class RustHtmlifier(object):
             c_decls = self.conn.execute(sql, (def_id,)).fetchone()[0]
             if c_decls > 0:
                 menu.append({
-                    'text':   "Find implementations (%d)"%c_decls,
+                    'html':   "Find implementations (%d)"%c_decls,
                     'title':  "Find implementations of this trait method",
                     'href':   self.search("+fn-impls:%s" % self.quote(qualname)),
                     'icon':   'method'
                 })
 
         menu.append({
-            'text':   "Find callers",
+            'html':   "Find callers",
             'title':  "Find functions that call this function",
             'href':   self.search("+callers:%s" % self.quote(qualname)),
             'icon':   'method'
         })
         menu.append({
-            'text':   "Find callees",
+            'html':   "Find callees",
             'title':  "Find functions that are called by this function",
             'href':   self.search("+called-by:%s" % self.quote(qualname)),
             'icon':   'method'
@@ -453,13 +453,13 @@ class RustHtmlifier(object):
         menu = []
         if kind == 'trait':
             menu.append({
-                'text':   "Find sub-traits",
+                'html':   "Find sub-traits",
                 'title':  "Find sub-traits of this trait",
                 'href':   self.search("+derived:%s" % self.quote(qualname)),
                 'icon':   'type'
             })
             menu.append({
-                'text':   "Find super-traits",
+                'html':   "Find super-traits",
                 'title':  "Find super-traits of this trait",
                 'href':   self.search("+bases:%s" % self.quote(qualname)),
                 'icon':   'type'
@@ -467,7 +467,7 @@ class RustHtmlifier(object):
         
         if kind == 'struct' or kind == 'trait':
             menu.append({
-                'text':   "Find impls",
+                'html':   "Find impls",
                 'title':  "Find impls which involve this " + kind,
                 'href':   self.search("+impl:%s" % self.quote(qualname)),
                 'icon':   'reference'
@@ -480,7 +480,7 @@ class RustHtmlifier(object):
         menu = []
         self.add_find_references(menu, qualname, "module-ref", "module")
         menu.append({
-            'text':   "Find use items",
+            'html':   "Find use items",
             'title':  "Find instances of this module in 'use' items",
             'href':   self.search("+module-use:%s" % self.quote(qualname)),
             'icon':   'reference'
@@ -510,7 +510,7 @@ class RustHtmlifier(object):
         url = self.tree.config.wwwroot + '/' + self.tree.name + '/source/' + path
         url += "#%s" % line
         menu.insert(0, { 
-            'text':   text,
+            'html':   text,
             'title':  "%s in '%s'" % (text,os.path.basename(path)),
             'href':   url,
             'icon':   'jump'
@@ -521,7 +521,7 @@ class RustHtmlifier(object):
             return menu;
 
         menu.insert(0, {
-            'text':   text,
+            'html':   text,
             'title':  long_text,
             'href':   url,
             'icon':   'jump'

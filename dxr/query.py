@@ -16,44 +16,6 @@ from parsimonious.nodes import NodeVisitor
 #   - Special argument files-only to just search for file names
 #   - If no plugin returns an extents query, don't fetch content
 
-<<<<<<< HEAD
-=======
-#TODO _parameters should be extracted from filters (possible if filters are defined first)
-# List of parameters to isolate in the search query, ie. path:mypath
-_parameters = ["path", "ext",
-"type", "type-ref", "type-decl",
-"function", "function-ref", "function-decl",
-"var", "var-ref", "var-decl",
-"namespace", "namespace-ref",
-"namespace-alias", "namespace-alias-ref",
-"module", "module-ref", "module-use",
-"module-alias", "module-alias-ref",
-"impl", "fn-impls", "extern-ref",
-"macro", "macro-ref", "callers", "called-by",
-"overridden", "overrides", "warning",
-"warning-opt", "bases", "derived", "member"]
-
-_parameters += ["-" + param for param in _parameters] + ["+" + param for param
-    in _parameters] + ["-+" + param for param in _parameters] + ["+-" + param for param in _parameters]
-
-#TODO Support negation of phrases, support phrases as args to params, ie. path:"my path", or warning:"..."
-
-
-# Pattern recognizing a parameter and a argument, a phrase or a keyword
-_pat = ("(?:(?P<regpar>-?regexp):(?P<del>.)(?P<regarg>(?:(?!(?P=del)).)+)(?P=del))|"
-        "(?:(?P<param>%s):(?:\"(?P<qarg>[^\"]+)\"|(?P<arg>[^ ]+)))|"
-        "(?:\"(?P<phrase>[^\"]+)\")|"
-        "(?:-\"(?P<notphrase>[^\"]+)\")|"
-        "(?P<keyword>[^ \"]+)")
-# Regexp for parsing regular expression
-_pat = re.compile(_pat % "|".join([re.escape(p) for p in _parameters]))
-
-# Pattern for recognizing if a word will be tokenized as a single term.
-# Ideally we should reuse our custom sqlite tokenizer, but that'll just
-# complicated things, anyways, if it's not a identifier, it must be a single
-# token, in which we'll wrap it anyway :)
-_single_term = re.compile("^[a-zA-Z]+[a-zA-Z0-9]*$")
->>>>>>> multiple and external crates
 
 # Pattern for matching a file and line number filename:n
 _line_number = re.compile("^.*:[0-9]+$")
