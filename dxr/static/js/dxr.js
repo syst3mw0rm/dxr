@@ -46,9 +46,12 @@ $(function() {
      * @param {string} id = The id of the highlighted table row
      */
     function scrollIntoView(id) {
-        var elementPos = document.getElementById(id).offsetTop;
+        var lineElement = document.getElementById(id);
 
-        if ((getMaxScrollY() - elementPos) > 100) {
+        if (lineElement === null)  // There is no line #1. Empty file.
+            return;
+
+        if ((getMaxScrollY() - lineElement.offsetTop) > 100) {
             window.scroll(0, window.scrollY - 150);
         }
     }
@@ -84,7 +87,7 @@ $(function() {
      * returns null.
      */
     function caseFromUrl() {
-        var match = /case=(\w+)/.exec(location.search);
+        var match = /[?&]?case=([^&]+)/.exec(location.search);
         return match ? (match[1] === 'true') : null;
     }
 
@@ -141,7 +144,7 @@ $(function() {
         defaultDataLimit = 100;
 
     // Has the user been redirected to a direct result?
-    var fromQuery = /[(&|^)from]=([^&]+)/.exec(location.search);
+    var fromQuery = /[?&]?from=([^&]+)/.exec(location.search);
     if (fromQuery !== null) {
         // Offer the user the option to see all the results instead.
         var viewResultsTxt = 'Showing a direct result. <a href="{{ url }}">Show all results instead.</a>',
