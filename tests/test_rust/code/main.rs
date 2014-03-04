@@ -1,20 +1,21 @@
 #[ crate_id = "test" ];
 #[feature(struct_variant)];
+#[feature(macro_rules)];
 
 extern crate num;
 // A simple rust project
 
 //extern crate krate2;
 extern crate myextra = "extra";
-//TODO doesn't work right now in rust
-//extern crate core = "github.com/thestinger/rust-core/tree/master/core";
 
 use num::bigint::BigInt;
 
 use msalias = sub::sub2;
 use sub::sub2;
 use std::io::stdio::println;
+use std::num::cast;
 
+static uni: &'static str = "Les Miséééééééérables";
 static yy: uint = 25u;
 
 static bob: Option<num::bigint::BigInt> = None;
@@ -52,6 +53,8 @@ pub mod SubDir;
 pub mod SameDir2;
 
 struct nofields;
+
+#[deriving(Clone)]
 struct some_fields {
     field1: u32,
 }
@@ -174,6 +177,9 @@ fn hello((z, a) : (u32, ~str)) {
     let x = ~"hello";
     println(x);
 
+    let x = 32.0f32;
+    let _ = (x + ((x * x) + 1.0).sqrt()).ln();
+
     let s: ~SomeTrait = ~some_fields {field1: 43};
     let s2: ~some_fields = ~some_fields {field1: 43};
     let s3 = ~nofields;
@@ -210,6 +216,18 @@ fn main() {
     let h = sub2::sub3::hello;
     h();
 
+    // utf8 chars
+    let _ = "Les Miséééééééérables";
+
+    // For some reason, this pattern of macro_rules foiled our generated code
+    // avoiding strategy.
+    macro_rules! variable_str(($name:expr) => (
+        some_fields {
+            field1: $name,
+        }
+    ));
+    let vs = variable_str!(32);
+
     let s1 = nofields;
     let s2 = some_fields{ field1: 55};
     let s3: some_fields = some_fields{ field1: 55};
@@ -228,3 +246,7 @@ fn main() {
     let s9: SomeStructEnum = EnumStruct2{f1: ~some_fields{field1:10}, f2: ~s2};
     matchSomeStructEnum(s9);
 }
+
+
+//pub fn main() {}
+

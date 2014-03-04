@@ -158,6 +158,16 @@ schema = dxr.schema.Schema({
 
     # FIXME the following are from the Clang plugin - we don't use them, but
     # they must be present so some queries don't fail.
+    "typedefs": [
+        ("id", "INTEGER", False),              # The typedef's id
+        ("name", "VARCHAR(256)", False),       # Simple name of the typedef
+        ("qualname", "VARCHAR(256)", False),   # Fully-qualified name of the typedef
+        ("extent_start", "INTEGER", True),
+        ("extent_end", "INTEGER", True),
+        ("_location", True),
+        ("_key", "id"),
+        ("_index", "qualname"),
+    ],
     "typedef_refs": [
         ("refid", "INTEGER", True),      # ID of the typedef being referenced
         ("extent_start", "INTEGER", True),
@@ -233,8 +243,8 @@ crate_map = {}
 
 # We know these crates come from the rust distribution (probably, the user could
 # override that, but lets assume for now...).
-std_libs = ['arena', 'collections', 'extra', 'extra', 'flate', 'fourcc', 'getopts', 'glob', 'green', 'native', 'num', 
-            'rustc', 'rustdoc', 'rustuv', 'semver', 'serialize', 'std', 'sync', 'syntax', 'term', 'uuid', 'uv']
+std_libs = ['arena', 'collections', 'extra', 'flate', 'fourcc', 'getopts', 'glob', 'green', 'native', 'num', 
+            'rustc', 'rustdoc', 'rustuv', 'semver', 'serialize', 'std', 'sync', 'syntax', 'term', 'test', 'time', 'uuid', 'uv']
 # These are the crates used in the current crate and indexed by DXR in the
 # current run.
 local_libs = []
@@ -273,6 +283,7 @@ def process_csv(file_name, conn, limit):
     try:
         f = open(file_name, 'rb')
         parsed_iter = csv.reader(f)
+
         # the first item on a line is the kind of entity we are dealing with and so
         # we can use that to dispatch to the appropriate process_... function
         change_count = 0
@@ -389,6 +400,10 @@ def add_external_item(args, conn):
     item_args['crate'] = crate
     execute_sql(conn, schema.get_insert_sql('unknowns', item_args))
     return True
+
+# Don't error due to output from the span checker tool.
+def process_span(args, conn):
+    pass
 
 def process_function_impl(args, conn):
     args['name'] = args['qualname'].split('::')[-1]
