@@ -1,0 +1,2 @@
+# Test manifest file
+'test.sh hello.rs' 'hello.csv'
