@@ -12,6 +12,8 @@
 # Command line format:
 # run-tests.py manifest_file [--verbose] [--allow-rows] [--allow-cols] [--dont-tidy-up]
 
+# TODO would be awesome if we didn't care about conrete ids, just graph consistency
+
 import sys, os, shutil, subprocess, csv
 
 allow_extra_rows = False
@@ -160,13 +162,8 @@ def compare_output(expected, found):
     success = True
 
     for ex in expected_lines:
-        if (ex[1]['file_name'],ex[1]['extent_start']) in found_map:
-            result = found_map.pop((ex[1]['file_name'],ex[1]['extent_start']))
-            # check kind
-            if ex[0] != result[0]:
-                success = False
-                if verbose:
-                    print "FAIL: found '%s', expected '%s' on row:"%(result[0],ex[0]), result
+        if (ex[0],ex[1]['extent_start']) in found_map:
+            result = found_map.pop((ex[0],ex[1]['extent_start']))
             # compare columns
             for col in ex[1].keys():
                 if col not in result[1]:
@@ -212,17 +209,19 @@ def parse_csv(input):
             args[line[i]] = line[i + 1]
         # Ignore lines without these details, which we will use for looking up
         # lines.
-        if 'file_name' in args and 'extent_start' in args:
+        if 'extent_start' in args:
             result.append((kind, args))
+        elif verbose:
+            print "skipping '%s'"%line
 
     return result
 
 
-#TODO I'm sure there is a nice way to do this
+#TODO I'm sure there is a nice, pythonic way to do this
 def make_map(lines):
     map = {}
     for l in lines:
-        map[(l[1]['file_name'],l[1]['extent_start'])] = l
+        map[(l[0],l[1]['extent_start'])] = l
     return map
 
 
