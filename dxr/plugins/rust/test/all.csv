@@ -1,13 +1,13 @@
 crate,file_name,all.rs,file_line,1,file_col,0,extent_start,0,file_line_end,251,file_col_end,0,extent_end,5389,name,all
-external_crate,name,serialize,crate,7,file_name,all.rs
-external_crate,name,green,crate,2,file_name,all.rs
-external_crate,name,num,crate,4,file_name,all.rs
+external_crate,name,rustuv,crate,3,file_name,all.rs
 external_crate,name,time,crate,9,file_name,all.rs
 external_crate,name,collections,crate,8,file_name,all.rs
-external_crate,name,rustuv,crate,3,file_name,all.rs
 external_crate,name,std,crate,1,file_name,all.rs
+external_crate,name,num,crate,4,file_name,all.rs
 external_crate,name,extra,crate,5,file_name,all.rs
 external_crate,name,sync,crate,6,file_name,all.rs
+external_crate,name,green,crate,2,file_name,all.rs
+external_crate,name,serialize,crate,7,file_name,all.rs
 end_external_crates
 extern_mod,file_name,all.rs,file_line,8,file_col,13,extent_start,208,file_line_end,8,file_col_end,16,extent_end,211,id,5,name,num,location,num,crate,4,scopeid,0
 extern_mod,file_name,all.rs,file_line,12,file_col,13,extent_start,275,file_line_end,12,file_col_end,20,extent_end,282,id,6,name,myextra,location,extra,crate,5,scopeid,0

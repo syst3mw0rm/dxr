@@ -1,5 +1,9 @@
 #[ crate_id = "test" ];
-#[feature(struct_variant)];
+
+use std::mem::size_of;
+use std::raw::Vec;
+
+/*#[feature(struct_variant)];
 #[feature(macro_rules)];
 
 extern crate num;
@@ -247,6 +251,12 @@ fn main() {
     matchSomeStructEnum(s9);
 }
 
-
-//pub fn main() {}
+*/
+pub fn main() {
+    // The Vec bit seems to be working
+    // BUT (TODO) neither size_of nor Vec are connected with their use statements
+    // TODO use with anything other than modules!
+    let _ = size_of::<Vec<()>>();
+    // TODO for the actual test we need variants with and without a space in the >>
+}
 
