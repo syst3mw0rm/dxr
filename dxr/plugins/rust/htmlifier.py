@@ -231,8 +231,58 @@ class RustHtmlifier(object):
                 module_aliases.location IS NULL
         """
         for start, end, qualname, mod_path, mod_line in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             self.add_jump_definition(menu, mod_path, mod_line, "jump to module definition")
+            yield start, end, (menu, qualname, None)
+
+        # 'module' aliases to things other than modules - types, vars, fns
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                types.qualname,
+                (SELECT path FROM files WHERE files.id = types.file_id),
+                types.file_line
+                FROM module_aliases, types
+              WHERE module_aliases.file_id = ? AND
+                module_aliases.refid = types.id AND
+                module_aliases.name != types.name AND
+                module_aliases.location IS NULL
+        """
+        for start, end, qualname, ty_path, ty_line in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname, "type-ref")
+            self.add_jump_definition(menu, ty_path, ty_line, "jump to type definition")
+            yield start, end, (menu, qualname, None)
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                variables.qualname,
+                (SELECT path FROM files WHERE files.id = variables.file_id),
+                variables.file_line
+                FROM module_aliases, variables
+              WHERE module_aliases.file_id = ? AND
+                module_aliases.refid = variables.id AND
+                module_aliases.name != variables.name AND
+                module_aliases.location IS NULL
+        """
+        for start, end, qualname, var_path, var_line in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname, "var-ref")
+            self.add_jump_definition(menu, var_path, var_line, "jump to variable definition")
+            yield start, end, (menu, qualname, None)
+        sql = """
+            SELECT module_aliases.extent_start,
+                module_aliases.extent_end,
+                functions.qualname,
+                (SELECT path FROM files WHERE files.id = functions.file_id),
+                functions.file_line
+                FROM module_aliases, functions
+              WHERE module_aliases.file_id = ? AND
+                module_aliases.refid = functions.id AND
+                module_aliases.name != functions.name AND
+                module_aliases.location IS NULL
+        """
+        for start, end, qualname, fn_path, fn_line in self.conn.execute(sql, args):
+            menu = self.module_alias_menu(qualname, "function-ref")
+            self.add_jump_definition(menu, fn_path, fn_line, "jump to function definition")
             yield start, end, (menu, qualname, None)
 
         # extern mods to known local crates
@@ -247,7 +297,7 @@ class RustHtmlifier(object):
                 module_aliases.location = crates.name
         """
         for start, end, qualname, mod_path, mod_line in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             self.add_jump_definition(menu, mod_path, mod_line, "jump to crate")
             yield start, end, (menu, qualname, None)
 
@@ -264,7 +314,7 @@ class RustHtmlifier(object):
                 module_aliases.location = extern_locations.location
         """
         for start, end, qualname, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             self.std_lib_links(menu, docurl, srcurl, dxrurl)
             yield start, end, (menu, qualname, None)
 
@@ -280,7 +330,7 @@ class RustHtmlifier(object):
                 module_aliases.location IS NOT NULL
         """
         for start, end, qualname in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             yield start, end, (menu, qualname, None)
 
         # Add references to extern mods via aliases (known local crates)
@@ -298,7 +348,7 @@ class RustHtmlifier(object):
                 module_aliases.location = crates.name
         """
         for start, end, qualname, path, line, mod_path, mod_line in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             self.add_jump_definition(menu, mod_path, mod_line, "jump to crate")
             self.add_jump_definition(menu, path, line, "jump to alias definition")
             yield start, end, (menu, qualname, None)
@@ -319,7 +369,7 @@ class RustHtmlifier(object):
                 module_aliases.location = extern_locations.location
         """
         for start, end, qualname, path, line, docurl, srcurl, dxrurl in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             self.std_lib_links(menu, docurl, srcurl, dxrurl)
             self.add_jump_definition(menu, path, line, "jump to alias definition")
             yield start, end, (menu, qualname, None)
@@ -339,7 +389,7 @@ class RustHtmlifier(object):
                 module_aliases.location IS NOT NULL
         """
         for start, end, qualname, path, line in self.conn.execute(sql, args):
-            menu = self.module_alias_menu(qualname)
+            menu = self.module_alias_menu(qualname, "module-alias-ref")
             self.add_jump_definition(menu, path, line, "jump to alias definition")
             yield start, end, (menu, qualname, None)
 
@@ -487,10 +537,10 @@ class RustHtmlifier(object):
         })
         return menu
 
-    def module_alias_menu(self, qualname):
+    def module_alias_menu(self, qualname, ref_search_kind):
         """ Build menu for a module alias """
         menu = []
-        self.add_find_references(menu, qualname, "module-alias-ref", "alias")
+        self.add_find_references(menu, qualname, ref_search_kind, "alias")
         return menu
 
     def extern_menu(self, uid):

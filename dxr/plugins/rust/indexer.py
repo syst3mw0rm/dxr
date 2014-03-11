@@ -437,6 +437,14 @@ def process_fn_call(args, conn):
 
     execute_sql(conn, schema.get_insert_sql('function_refs', convert_ids(args, conn)))
 
+# FIXME: hmm, I'm not exactly clear on the difference between a fn call and fn ref, some of the former
+# are logically the latter and this is stupid code dup...
+def process_fn_ref(args, conn):
+    if add_external_item(args, conn):
+        return;
+
+    execute_sql(conn, schema.get_insert_sql('function_refs', convert_ids(args, conn)))
+
 def process_method_call(args, conn):
     if args['refid'] == '0':
         args['refid'] = None
@@ -518,9 +526,10 @@ def process_mod_ref(args, conn):
 
     execute_sql(conn, schema.get_insert_sql('module_refs', convert_ids(args, conn)))
 
-def process_module_alias(args, conn):
+def process_use_alias(args, conn):
     args['qualname'] = args['scopeid'] + "$" + args['name']
 
+    # module_aliases includes aliases to things other than modules
     execute_sql(conn, schema.get_insert_sql('module_aliases', convert_ids(args, conn)))
 
 def process_impl(args, conn):
@@ -748,12 +757,6 @@ def generate_locations(conn):
         # them special treatment.
         if l not in local_libs:
             conn.execute(sql, (l, docurl%l, srcurl%l, dxrurl%l))
-
-    # crates from github
-    sql = "SELECT location FROM module_aliases WHERE location LIKE 'github.com'"
-    srcurl = "https://%s"
-    for l in conn.execute(sql):
-        conn.execute("INSERT OR IGNORE INTO extern_locations(location, docurl, srcurl, dxrurl) VALUES (?, '', ?, '')", (l, srcurl%l))
         
 def generate_scopes(conn):
     global mod_parents

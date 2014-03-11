@@ -1,9 +1,5 @@
 #[ crate_id = "test" ];
-
-use std::mem::size_of;
-use std::raw::Vec;
-
-/*#[feature(struct_variant)];
+#[feature(struct_variant)];
 #[feature(macro_rules)];
 
 extern crate num;
@@ -16,8 +12,13 @@ use num::bigint::BigInt;
 
 use msalias = sub::sub2;
 use sub::sub2;
+use sub_struct = sub::sub2::nested_struct;
 use std::io::stdio::println;
 use std::num::cast;
+use std::num::{atan,atanh};
+
+use std::mem::size_of;
+use std::raw::Vec;
 
 static uni: &'static str = "Les Miséééééééérables";
 static yy: uint = 25u;
@@ -25,6 +26,10 @@ static yy: uint = 25u;
 static bob: Option<num::bigint::BigInt> = None;
 
 // buglink test - see issue #1337.
+
+fn test_aslias() {
+    let s = sub_struct{ field2: 45u32, };
+}
 
 mod sub {
     pub mod sub2 {
@@ -251,12 +256,10 @@ fn main() {
     matchSomeStructEnum(s9);
 }
 
-*/
-pub fn main() {
+
+/*pub fn main() {
     // The Vec bit seems to be working
-    // BUT (TODO) neither size_of nor Vec are connected with their use statements
-    // TODO use with anything other than modules!
-    let _ = size_of::<Vec<()>>();
+    let _ = size_of::<Vec<()> >();
     // TODO for the actual test we need variants with and without a space in the >>
-}
+}*/
 
