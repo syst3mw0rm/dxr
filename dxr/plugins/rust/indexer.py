@@ -299,7 +299,7 @@ def process_csv(file_name, conn, limit):
             try:
                 globals()['process_' + line[0]](args, conn)
             except KeyError:
-                print " - process_" + line[0] + " not implemented!"
+                print " - 'process_" + line[0] + "' not implemented!"
 
             change_count += 1
             if change_count > 10000:
@@ -372,6 +372,8 @@ def convert_ids(args, conn):
             return v
         elif k == 'id' or k == 'scopeid':
             return find_id_cur(v)
+        elif v == '' and (k.endswith('id') or k == 'base' or k == 'derived'):
+            return None
         elif k.endswith('id') or k == 'base' or k == 'derived':
             return find_id(crate_map[args[k + 'crate']][0], v)
         else:
